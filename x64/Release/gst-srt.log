@@ -1,0 +1,13 @@
+﻿  gstsrtclientsrc.c
+gstsrtclientsrc.c(79): warning C4273: 'gst_srt_client_src_get_type': inconsistent dll linkage
+  c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gst-srt\gstsrtclientsrc.h(64): note: see previous definition of 'gst_srt_client_src_get_type'
+gstsrtclientsrc.c(177): warning C4244: 'function': conversion from 'gsize' to 'int', possible loss of data
+gstsrtclientsrc.c(265): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+     Creating library C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\gst-srt\x64\Release\gst-srt.lib and object C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\gst-srt\x64\Release\gst-srt.exp
+  Generating code
+  4 of 90 functions ( 4.4%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  gst-srt.vcxproj -> C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\gst-srt\x64\Release\gst-srt.dll
+          1 file(s) copied.

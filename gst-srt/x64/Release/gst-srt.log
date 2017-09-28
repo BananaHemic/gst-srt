@@ -1,0 +1,35 @@
+﻿  gstsrt.c
+  gstsrtbasesink.c
+gstsrtbasesink.c(62): warning C4273: 'gst_srt_base_sink_get_type': inconsistent dll linkage
+  c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gstsrtbasesink.h(65): note: see previous definition of 'gst_srt_base_sink_get_type'
+  gstsrtbasesrc.c
+gstsrtbasesrc.c(61): warning C4273: 'gst_srt_base_src_get_type': inconsistent dll linkage
+  c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gstsrtbasesrc.h(60): note: see previous definition of 'gst_srt_base_src_get_type'
+  gstsrtclientsink.c
+gstsrtclientsink.c(85): warning C4273: 'gst_srt_client_sink_get_type': inconsistent dll linkage
+  c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gstsrtclientsink.h(63): note: see previous definition of 'gst_srt_client_sink_get_type'
+gstsrtclientsink.c(177): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+gstsrtclientsink.c(217): warning C4244: 'function': conversion from 'const gsize' to 'int', possible loss of data
+  gstsrtclientsrc.c
+gstsrtclientsrc.c(79): warning C4273: 'gst_srt_client_src_get_type': inconsistent dll linkage
+  c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gstsrtclientsrc.h(64): note: see previous definition of 'gst_srt_client_src_get_type'
+gstsrtclientsrc.c(177): warning C4244: 'function': conversion from 'gsize' to 'int', possible loss of data
+gstsrtclientsrc.c(265): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+  gstsrtserversink.c
+gstsrtserversink.c(104): warning C4273: 'gst_srt_server_sink_get_type': inconsistent dll linkage
+  c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gstsrtserversink.h(64): note: see previous definition of 'gst_srt_server_sink_get_type'
+gstsrtserversink.c(327): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+gstsrtserversink.c(400): warning C4244: 'function': conversion from 'const gsize' to 'int', possible loss of data
+  gstsrtserversrc.c
+gstsrtserversrc.c(102): warning C4273: 'gst_srt_server_src_get_type': inconsistent dll linkage
+  c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gstsrtserversrc.h(65): note: see previous definition of 'gst_srt_server_src_get_type'
+gstsrtserversrc.c(233): warning C4244: 'function': conversion from 'gsize' to 'int', possible loss of data
+gstsrtserversrc.c(343): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+     Creating library C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\x64\Release\gst-srt.lib and object C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\x64\Release\gst-srt.exp
+  Generating code
+  90 of 90 functions (100.0%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  gst-srt.vcxproj -> C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\x64\Release\gst-srt.dll
+          1 file(s) copied.
