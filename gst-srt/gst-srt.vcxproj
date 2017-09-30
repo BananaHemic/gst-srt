@@ -82,13 +82,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;C:\Users\J\Documents\Projects\SRT_SHIT\srt-src\srtcore;C:\pthread-win32\include;C:\Users\J\Documents\Projects\SRT_SHIT\srt-src\common;C:\Users\J\Documents\Projects\SRT_SHIT\srt-src\haicrypt</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;..\..\srt-src\srtcore;C:\pthread-win32\include;..\..\srt-src\common;..\..\srt-src\haicrypt</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINDLL;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>C:\Users\J\Documents\Projects\SRT_SHIT\srt-build\Release\*.lib;$(GSTREAMER_1_0_ROOT_X86_64)\lib\*.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\srt-build\Release\*.lib;$(GSTREAMER_1_0_ROOT_X86_64)\lib\*.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
+      <Command>copy $(TargetPath) $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\ &amp;&amp; copy ..\..\srt-build\Release\srt.*  $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copying to gst lib folder $(GSTREAMER_1_0_ROOT_X86_64)</Message>
@@ -114,15 +115,16 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;C:\Users\J\Documents\Projects\SRT_SHIT\srt-src\srtcore;C:\pthread-win32\include;C:\Users\J\Documents\Projects\SRT_SHIT\srt-src\common;C:\Users\J\Documents\Projects\SRT_SHIT\srt-src\haicrypt</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;..\..\srt-src\srtcore;C:\pthread-win32\include;..\..\srt-src\common;..\..\srt-src\haicrypt</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINDLL;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>C:\Users\J\Documents\Projects\SRT_SHIT\srt-build\Release\*.lib;$(GSTREAMER_1_0_ROOT_X86_64)\lib\*.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\srt-build\Release\*.lib;$(GSTREAMER_1_0_ROOT_X86_64)\lib\*.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
+      <Command>copy $(TargetPath) $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\ &amp;&amp; copy ..\..\srt-build\Release\srt.*  $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copying to gst lib folder $(GSTREAMER_1_0_ROOT_X86_64)</Message>

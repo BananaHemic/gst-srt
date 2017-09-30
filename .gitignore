@@ -41,9 +41,13 @@ Makefile
 # VS stuff
 .vs/
 *.log
+*.tlog
+*.lastbuildstate
 *.iobj
 *.pdb
 *.ipdb
+*.ilk
+*.exp
 
 Session.vim
 # Prerequisites
