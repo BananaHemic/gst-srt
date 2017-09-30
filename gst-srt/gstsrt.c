@@ -35,7 +35,7 @@ plugin_init(GstPlugin * plugin)
 		GST_TYPE_SRT_CLIENT_SRC))
 		return FALSE;
 
-	if (!gst_element_register(plugin, "srtserversrc", GST_RANK_PRIMARY,
+	if (!gst_element_register(plugin, "srtserversrc", GST_RANK_SECONDARY,
 		GST_TYPE_SRT_SERVER_SRC))
 		return FALSE;
 

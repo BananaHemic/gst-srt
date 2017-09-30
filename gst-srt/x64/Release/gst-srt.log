@@ -24,12 +24,10 @@ gstsrtserversink.c(400): warning C4244: 'function': conversion from 'const gsize
 gstsrtserversrc.c(102): warning C4273: 'gst_srt_server_src_get_type': inconsistent dll linkage
   c:\users\j\documents\projects\srt_shit\gst-srt\gst-srt\gstsrtserversrc.h(65): note: see previous definition of 'gst_srt_server_src_get_type'
 gstsrtserversrc.c(233): warning C4244: 'function': conversion from 'gsize' to 'int', possible loss of data
-gstsrtserversrc.c(343): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+gstsrtserversrc.c(346): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
      Creating library C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\x64\Release\gst-srt.lib and object C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\x64\Release\gst-srt.exp
   Generating code
-  90 of 90 functions (100.0%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  All 90 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Finished generating code
   gst-srt.vcxproj -> C:\Users\J\Documents\Projects\SRT_SHIT\gst-srt\x64\Release\gst-srt.dll
           1 file(s) copied.

@@ -40,6 +40,10 @@ Makefile
 *.gc??
 # VS stuff
 .vs/
+*.log
+*.iobj
+*.pdb
+*.ipdb
 
 Session.vim
 # Prerequisites

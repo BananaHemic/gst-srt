@@ -340,8 +340,11 @@ gst_srt_server_src_start(GstBaseSrc * src)
 	srt_epoll_add_usock(priv->poll_id, priv->sock, &(int) {
 		SRT_EPOLL_IN});
 
+	// I get an occassional exception here
+	// srtserversrc gstsrtserversrc.c:345:gst_srt_server_src_start:<source> failed to bind SRT server socket
+	// (reason: Connection setup failure: unable to create/configure SRT socket: The requested address is not valid in its context.
 	if (srt_bind(priv->sock, &sa, sa_len) == SRT_ERROR) {
-		GST_WARNING_OBJECT(self, "failed to bind SRT server socket (reason: %s)",
+		GST_WARNING_OBJECT(self, "failed to bind SRT server socket (reason: %s) (Are you sure you didn't want to use srtclientsrc instead?",
 			srt_getlasterror_str());
 		goto failed;
 
