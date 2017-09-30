@@ -115,6 +115,7 @@ srt_client_new(void)
 {
 	SRTClient *client = g_new(SRTClient, 1);
 	client->sock = SRT_INVALID_SOCK;
+	GST_DEBUG("New SRT client");
 	return client;
 }
 
@@ -399,9 +400,12 @@ gst_srt_server_sink_send_buffer(GstSRTBaseSink * sink,
 
 		if (srt_sendmsg2(client->sock, (char *)mapinfo->data, mapinfo->size,
 			0) == SRT_ERROR) {
-			GST_WARNING_OBJECT(self, "%s", srt_getlasterror_str());
+			GST_WARNING_OBJECT(self, "Removing client. Reason: %s", srt_getlasterror_str());
 
 			priv->clients = g_list_remove(priv->clients, client);
+			//clients = g_list_remove(priv->clients, client);
+			g_list_remove(priv->clients, client);
+
 			g_signal_emit(self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
 				&client->sa, client->sa_len);
 			srt_client_free(client);
