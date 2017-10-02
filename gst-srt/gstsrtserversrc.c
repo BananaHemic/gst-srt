@@ -49,6 +49,8 @@
 #define SRT_DEFAULT_PORT 7001
 #define SRT_DEFAULT_URI SRT_URI_SCHEME"://:"G_STRINGIFY(SRT_DEFAULT_PORT)
 #define SRT_DEFAULT_POLL_TIMEOUT 100
+#define SRT_DEFAULT_TIMEOUT -1
+#define SRT_DEFAULT_LATENCY 125
 
 static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE("src",
 	GST_PAD_SRC,
@@ -62,11 +64,12 @@ struct _GstSRTServerSrcPrivate
 {
 	SRTSOCKET sock;
 	SRTSOCKET client_sock;
-	struct sockaddr client_sa;
-	size_t client_sa_len;
+	GSocketAddress *client_sockaddr;
 
 	gint poll_id;
 	gint poll_timeout;
+	gint timeout;
+	gint latency;
 
 	gboolean has_client;
 	gboolean cancelled;
@@ -75,15 +78,17 @@ struct _GstSRTServerSrcPrivate
 #define GST_SRT_SERVER_SRC_GET_PRIVATE(obj)  \
        (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GST_TYPE_SRT_SERVER_SRC, GstSRTServerSrcPrivate))
 
-typedef enum
+enum
 {
 	PROP_POLL_TIMEOUT = 1,
+	PROP_TIMEOUT,
+	PROP_LATENCY,
 
 	/*< private > */
-	PROP_LAST = PROP_POLL_TIMEOUT
-} GstSRTServerSrcProperty;
+	PROP_LAST
+};
 
-static GParamSpec *properties[PROP_LAST + 1];
+static GParamSpec *properties[PROP_LAST];
 
 enum
 {
@@ -108,9 +113,15 @@ gst_srt_server_src_get_property(GObject * object,
 	GstSRTServerSrc *self = GST_SRT_SERVER_SRC(object);
 	GstSRTServerSrcPrivate *priv = GST_SRT_SERVER_SRC_GET_PRIVATE(self);
 
-	switch ((GstSRTServerSrcProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_POLL_TIMEOUT:
 		g_value_set_int(value, priv->poll_timeout);
+		break;
+	case PROP_TIMEOUT:
+		g_value_set_int(value, priv->timeout);
+		break;
+	case PROP_LATENCY:
+		g_value_set_int(value, priv->latency);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -126,9 +137,14 @@ gst_srt_server_src_set_property(GObject * object,
 	GstSRTServerSrc *self = GST_SRT_SERVER_SRC(object);
 	GstSRTServerSrcPrivate *priv = GST_SRT_SERVER_SRC_GET_PRIVATE(self);
 
-	switch ((GstSRTServerSrcProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_POLL_TIMEOUT:
 		priv->poll_timeout = g_value_get_int(value);
+		break;
+	case PROP_TIMEOUT:
+		priv->timeout = g_value_get_int(value);
+	case PROP_LATENCY:
+		priv->latency = g_value_get_int(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -167,17 +183,17 @@ gst_srt_server_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 	GstMapInfo info;
 	SRTSOCKET ready[2];
 	gint recv_len;
+	struct sockaddr client_sa;
+	size_t client_sa_len;
+	gint timeWaiting = 0;
 
 	while (!priv->has_client) {
 		GST_DEBUG_OBJECT(self, "poll wait (timeout: %d)", priv->poll_timeout);
 
-		/* Make SRT server socket non-blocking */
-		srt_setsockopt(priv->sock, 0, SRTO_SNDSYN, &(int) {
-			0}, sizeof(int));
-
 		if (srt_epoll_wait(priv->poll_id, ready, &(int) {
 			2}, 0, 0, priv->poll_timeout, 0, 0, 0, 0) == -1) {
 			int srt_errno = srt_getlasterror(NULL);
+			timeWaiting += priv->poll_timeout;
 
 			/* Assuming that timeout error is normal */
 			if (srt_errno != SRT_ETIMEOUT) {
@@ -185,22 +201,25 @@ gst_srt_server_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 					("SRT error: %s", srt_getlasterror_str()), (NULL));
 
 				return GST_FLOW_ERROR;
-
 			}
 
 			/* Mimicking cancellable */
 			if (srt_errno == SRT_ETIMEOUT && priv->cancelled) {
 				GST_DEBUG_OBJECT(self, "Cancelled waiting for client");
 				return GST_FLOW_FLUSHING;
+			}
 
+			/* Handle timeouts */
+			if (srt_errno == SRT_ETIMEOUT && (priv->timeout >= 0 && priv->timeout < timeWaiting)) {
+				GST_WARNING_OBJECT(self, "timed out waiting for client");
+				return GST_FLOW_EOS;
 			}
 
 			continue;
-
 		}
 
 		priv->client_sock =
-			srt_accept(priv->sock, &priv->client_sa, (int *)&priv->client_sa_len);
+			srt_accept(priv->sock, &client_sa, (int *)&client_sa_len);
 
 		GST_DEBUG_OBJECT(self, "checking client sock");
 		if (priv->client_sock == SRT_INVALID_SOCK) {
@@ -212,11 +231,12 @@ gst_srt_server_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 		}
 		else {
 			priv->has_client = TRUE;
+			g_clear_object(&priv->client_sockaddr);
+			priv->client_sockaddr = g_socket_address_new_from_native(&client_sa,
+				client_sa_len);
 			g_signal_emit(self, signals[SIG_CLIENT_ADDED], 0,
-				priv->client_sock, &priv->client_sa, priv->client_sa_len);
-
+				priv->client_sock, priv->client_sockaddr);
 		}
-
 	}
 
 	GST_DEBUG_OBJECT(self, "filling buffer");
@@ -238,10 +258,11 @@ gst_srt_server_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 		GST_WARNING_OBJECT(self, "%s", srt_getlasterror_str());
 
 		g_signal_emit(self, signals[SIG_CLIENT_CLOSED], 0,
-			priv->client_sock, &priv->client_sa, priv->client_sa_len);
+			priv->client_sock, priv->client_sockaddr);
 
 		srt_close(priv->client_sock);
 		priv->client_sock = SRT_INVALID_SOCK;
+		g_clear_object(&priv->client_sockaddr);
 		priv->has_client = FALSE;
 		gst_buffer_resize(outbuf, 0, 0);
 		ret = GST_FLOW_OK;
@@ -325,8 +346,21 @@ gst_srt_server_src_start(GstBaseSrc * src)
 		GST_WARNING_OBJECT(self, "failed to create SRT socket (reason: %s)",
 			srt_getlasterror_str());
 		goto failed;
-
 	}
+
+	/* Make SRT server socket non-blocking */
+	srt_setsockopt(priv->sock, 0, SRTO_SNDSYN, &(int) {
+		0}, sizeof(int));
+	
+	/* Make sure TSBPD mode is enable (SRT mode) */
+	srt_setsockopt(priv->sock, 0, SRTO_TSBPDMODE, &(int) {
+		1}, sizeof(int));
+
+	/* This is a source, we're always a receiver */
+	srt_setsockopt(priv->sock, 0, SRTO_SENDER, &(int) {
+		0}, sizeof(int));
+
+	srt_setsockopt(priv->sock, 0, SRTO_TSBPDDELAY, &priv->latency, sizeof(int));
 
 	priv->poll_id = srt_epoll_create();
 	if (priv->poll_id == -1) {
@@ -390,8 +424,9 @@ gst_srt_server_src_stop(GstBaseSrc * src)
 
 	if (priv->client_sock != SRT_INVALID_SOCK) {
 		g_signal_emit(self, signals[SIG_CLIENT_ADDED], 0,
-			priv->client_sock, &priv->client_sa, priv->client_sa_len);
+			priv->client_sock, priv->client_sockaddr);
 		srt_close(priv->client_sock);
+		g_clear_object(&priv->client_sockaddr);
 		priv->client_sock = SRT_INVALID_SOCK;
 		priv->has_client = FALSE;
 
@@ -459,11 +494,21 @@ gst_srt_server_src_class_init(GstSRTServerSrcClass * klass)
 		*/
 	properties[PROP_POLL_TIMEOUT] =
 		g_param_spec_int("poll-timeout", "Poll timeout",
-			"Return poll wait after timeout miliseconds", 0, G_MAXINT32,
-			SRT_DEFAULT_POLL_TIMEOUT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+		"Return poll wait after timeout miliseconds", 0, G_MAXINT32,
+		SRT_DEFAULT_POLL_TIMEOUT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_properties(gobject_class, G_N_ELEMENTS(properties),
-		properties);
+	properties[PROP_TIMEOUT] =
+		g_param_spec_int("timeout", "Timeout",
+		"Gives up establishing a connection after timeout milliseconds", -1, G_MAXINT32,
+		SRT_DEFAULT_POLL_TIMEOUT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	properties[PROP_LATENCY] =
+		g_param_spec_int("latency", "latency",
+		"Minimum latency(milliseconds)", 0,
+		G_MAXINT32, SRT_DEFAULT_LATENCY,
+		G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+	
+	g_object_class_install_properties(gobject_class, PROP_LAST, properties);
 
 	/**
 		* GstSRTServerSrc::client-added:
@@ -478,7 +523,7 @@ gst_srt_server_src_class_init(GstSRTServerSrcClass * klass)
 		g_signal_new("client-added", G_TYPE_FROM_CLASS(klass),
 			G_SIGNAL_RUN_LAST, G_STRUCT_OFFSET(GstSRTServerSrcClass, client_added),
 			NULL, NULL, g_cclosure_marshal_generic, G_TYPE_NONE,
-			3, G_TYPE_INT, G_TYPE_POINTER, G_TYPE_INT);
+			2, G_TYPE_INT, G_TYPE_SOCKET_ADDRESS);
 
 	/**
 		* GstSRTServerSrc::client-closed:
@@ -493,7 +538,7 @@ gst_srt_server_src_class_init(GstSRTServerSrcClass * klass)
 		g_signal_new("client-closed", G_TYPE_FROM_CLASS(klass),
 			G_SIGNAL_RUN_LAST, G_STRUCT_OFFSET(GstSRTServerSrcClass, client_closed),
 			NULL, NULL, g_cclosure_marshal_generic, G_TYPE_NONE,
-			3, G_TYPE_INT, G_TYPE_POINTER, G_TYPE_INT);
+			2, G_TYPE_INT, G_TYPE_SOCKET_ADDRESS);
 
 	gst_element_class_add_static_pad_template(gstelement_class, &src_template);
 	gst_element_class_set_metadata(gstelement_class,
@@ -519,4 +564,6 @@ gst_srt_server_src_init(GstSRTServerSrc * self)
 	priv->client_sock = SRT_INVALID_SOCK;
 	priv->poll_id = SRT_ERROR;
 	priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
+	priv->timeout = SRT_DEFAULT_TIMEOUT;
+	priv->latency = SRT_DEFAULT_LATENCY;
 }

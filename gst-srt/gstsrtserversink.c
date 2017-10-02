@@ -49,6 +49,7 @@
 #define SRT_DEFAULT_PORT 7001
 #define SRT_DEFAULT_URI SRT_URI_SCHEME"://:"G_STRINGIFY(SRT_DEFAULT_PORT)
 #define SRT_DEFAULT_POLL_TIMEOUT - 1
+#define SRT_DEFAULT_LATENCY 125
 
 static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE("sink",
 	GST_PAD_SINK,
@@ -66,6 +67,7 @@ struct _GstSRTServerSinkPrivate
 	SRTSOCKET sock;
 	gint poll_id;
 	gint poll_timeout;
+	gint latency;
 
 	GMainLoop *loop;
 	GMainContext *context;
@@ -78,14 +80,16 @@ struct _GstSRTServerSinkPrivate
 #define GST_SRT_SERVER_SINK_GET_PRIVATE(obj)  \
        (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GST_TYPE_SRT_SERVER_SINK, GstSRTServerSinkPrivate))
 
-typedef enum
+enum
 {
 	PROP_POLL_TIMEOUT = 1,
+	PROP_STATS,
+	PROP_LATENCY,
 	/*< private > */
-	PROP_LAST = PROP_POLL_TIMEOUT
-} GstSRTServerSinkProperty;
+	PROP_LAST
+};
 
-static GParamSpec *properties[PROP_LAST + 1];
+static GParamSpec *properties[PROP_LAST];
 
 enum
 {
@@ -106,14 +110,13 @@ G_DEFINE_TYPE_WITH_CODE(GstSRTServerSink, gst_srt_server_sink,
 typedef struct
 {
 	int sock;
-	struct sockaddr sa;
-	int sa_len;
+	GSocketAddress *sockaddr;
 } SRTClient;
 
 static SRTClient *
 srt_client_new(void)
 {
-	SRTClient *client = g_new(SRTClient, 1);
+	SRTClient *client = g_new0(SRTClient, 1);
 	client->sock = SRT_INVALID_SOCK;
 	GST_DEBUG("New SRT client");
 	return client;
@@ -124,9 +127,10 @@ srt_client_free(SRTClient * client)
 {
 	g_return_if_fail(client != NULL);
 
+	g_clear_object(&client->sockaddr);
+
 	if (client->sock != SRT_INVALID_SOCK) {
 		srt_close(client->sock);
-
 	}
 
 	g_free(client);
@@ -139,7 +143,7 @@ srt_emit_client_removed(SRTClient * client, gpointer user_data)
 	g_return_if_fail(client != NULL && GST_IS_SRT_SERVER_SINK(self));
 
 	g_signal_emit(self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
-		&client->sa, client->sa_len);
+		&client->sockaddr);
 }
 
 static void
@@ -149,9 +153,27 @@ gst_srt_server_sink_get_property(GObject * object,
 	GstSRTServerSink *self = GST_SRT_SERVER_SINK(object);
 	GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE(self);
 
-	switch ((GstSRTServerSinkProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_POLL_TIMEOUT:
 		g_value_set_int(value, priv->poll_timeout);
+		break;
+	case PROP_STATS:
+	{
+		GList *item;
+
+		for (item = priv->clients; item; item = item->next) {
+			SRTClient *client = item->data;
+			GValue tmp = G_VALUE_INIT;
+
+			g_value_init(&tmp, GST_TYPE_STRUCTURE);
+			g_value_take_boxed(&tmp, gst_srt_base_sink_get_stats(client->sockaddr,
+				client->sock));
+			gst_value_array_append_and_take_value(value, &tmp);
+		}
+		break;
+	}
+	case PROP_LATENCY:
+		g_value_set_int(value, priv->latency);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -167,9 +189,12 @@ gst_srt_server_sink_set_property(GObject * object,
 	GstSRTServerSink *self = GST_SRT_SERVER_SINK(object);
 	GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE(self);
 
-	switch ((GstSRTServerSinkProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_POLL_TIMEOUT:
 		priv->poll_timeout = g_value_get_int(value);
+		break;
+	case PROP_LATENCY:
+		priv->latency = g_value_get_int(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -198,6 +223,8 @@ idle_listen_callback(gpointer data)
 
 	SRTClient *client;
 	SRTSOCKET ready[2];
+	struct sockaddr sa;
+	int sa_len;
 
 	if (srt_epoll_wait(priv->poll_id, ready, &(int) {
 		2}, 0, 0, priv->poll_timeout, 0, 0, 0, 0) == -1) {
@@ -222,7 +249,7 @@ idle_listen_callback(gpointer data)
 	}
 
 	client = srt_client_new();
-	client->sock = srt_accept(priv->sock, &client->sa, &client->sa_len);
+	client->sock = srt_accept(priv->sock, &sa, &sa_len);
 
 	if (client->sock == SRT_INVALID_SOCK) {
 		GST_WARNING_OBJECT(self, "detected invalid SRT client socket (reason: %s)",
@@ -236,7 +263,7 @@ idle_listen_callback(gpointer data)
 
 	priv->clients = g_list_append(priv->clients, client);
 	g_signal_emit(self, signals[SIG_CLIENT_ADDED], 0, client->sock,
-		&client->sa, client->sa_len);
+		client->sockaddr);
 	GST_DEBUG_OBJECT(self, "client added");
 
 out:
@@ -266,6 +293,7 @@ gst_srt_server_sink_start(GstBaseSink * sink)
 	struct sockaddr sa;
 	size_t sa_len;
 	const gchar *host;
+	int lat = priv->latency;
 
 	if (gst_uri_get_port(uri) == GST_URI_NO_PORT) {
 		GST_ELEMENT_ERROR(sink, RESOURCE, OPEN_WRITE, NULL, (("Invalid port")));
@@ -313,6 +341,16 @@ gst_srt_server_sink_start(GstBaseSink * sink)
 	/* Make SRT non-blocking */
 	srt_setsockopt(priv->sock, 0, SRTO_SNDSYN, &(int) {
 		0}, sizeof(int));
+
+	/* Make sure TSBPD mode is enable (SRT mode) */
+	srt_setsockopt(priv->sock, 0, SRTO_TSBPDMODE, &(int) {
+		1}, sizeof(int));
+	
+	/* This is a sink, we're always a sender */
+	srt_setsockopt(priv->sock, 0, SRTO_SENDER, &(int) {
+		1}, sizeof(int));
+
+	srt_setsockopt(priv->sock, 0, SRTO_TSBPDDELAY, &lat, sizeof(int));
 
 	priv->poll_id = srt_epoll_create();
 	if (priv->poll_id == -1) {
@@ -407,7 +445,7 @@ gst_srt_server_sink_send_buffer(GstSRTBaseSink * sink,
 			g_list_remove(priv->clients, client);
 
 			g_signal_emit(self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
-				&client->sa, client->sa_len);
+				client->sockaddr);
 			srt_client_free(client);
 
 		}
@@ -492,8 +530,19 @@ gst_srt_server_sink_class_init(GstSRTServerSinkClass * klass)
 			G_MAXINT32, SRT_DEFAULT_POLL_TIMEOUT,
 			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_properties(gobject_class, G_N_ELEMENTS(properties),
-		properties);
+	properties[PROP_STATS] = gst_param_spec_array("stats", "Statistics",
+		"Array of GstStructures containing SRT statistics",
+		g_param_spec_boxed("stats", "Statistics",
+			"Statistics for one client", GST_TYPE_STRUCTURE,
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS),
+		G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+	
+	properties[PROP_LATENCY] =
+		g_param_spec_int("latency", "latency",
+		"Minimum latency(milliseconds)", 0,
+		G_MAXINT32, SRT_DEFAULT_LATENCY,
+		G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+	g_object_class_install_properties(gobject_class, PROP_LAST, properties);
 
 	/**
 		* GstSRTServerSink::client-added:
@@ -508,7 +557,7 @@ gst_srt_server_sink_class_init(GstSRTServerSinkClass * klass)
 		g_signal_new("client-added", G_TYPE_FROM_CLASS(klass),
 			G_SIGNAL_RUN_LAST, G_STRUCT_OFFSET(GstSRTServerSinkClass, client_added),
 			NULL, NULL, g_cclosure_marshal_generic, G_TYPE_NONE,
-			3, G_TYPE_INT, G_TYPE_POINTER, G_TYPE_INT);
+			2, G_TYPE_INT, G_TYPE_SOCKET_ADDRESS);
 
 	/**
 		* GstSRTServerSink::client-removed:
@@ -523,7 +572,7 @@ gst_srt_server_sink_class_init(GstSRTServerSinkClass * klass)
 		g_signal_new("client-removed", G_TYPE_FROM_CLASS(klass),
 			G_SIGNAL_RUN_LAST, G_STRUCT_OFFSET(GstSRTServerSinkClass,
 				client_removed), NULL, NULL, g_cclosure_marshal_generic, G_TYPE_NONE,
-			3, G_TYPE_INT, G_TYPE_POINTER, G_TYPE_INT);
+			2, G_TYPE_INT, G_TYPE_SOCKET_ADDRESS);
 
 	gst_element_class_add_static_pad_template(gstelement_class, &sink_template);
 	gst_element_class_set_metadata(gstelement_class,
@@ -546,5 +595,6 @@ gst_srt_server_sink_init(GstSRTServerSink * self)
 {
 	GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE(self);
 	priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
+	priv->latency = SRT_DEFAULT_LATENCY;
 	g_mutex_init(&priv->mutex);
 }

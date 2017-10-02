@@ -56,21 +56,24 @@ struct _GstSRTClientSrcPrivate
 	SRTSOCKET sock;
 	gint poll_id;
 	gint poll_timeout;
+	gint latency;
 };
 
 #define GST_SRT_CLIENT_SRC_GET_PRIVATE(obj)  \
        (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GST_TYPE_SRT_CLIENT_SRC, GstSRTClientSrcPrivate))
 
 #define SRT_DEFAULT_POLL_TIMEOUT - 1
-typedef enum
+#define SRT_DEFAULT_LATENCY 125
+enum
 {
 	PROP_POLL_TIMEOUT = 1,
+	PROP_LATENCY,
 
 	/*< private > */
-	PROP_LAST = PROP_POLL_TIMEOUT
-} GstSRTClientSrcProperty;
+	PROP_LAST
+};
 
-static GParamSpec *properties[PROP_LAST + 1];
+static GParamSpec *properties[PROP_LAST];
 
 #define gst_srt_client_src_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE(GstSRTClientSrc, gst_srt_client_src,
@@ -85,9 +88,12 @@ gst_srt_client_src_get_property(GObject * object,
 	GstSRTClientSrc *self = GST_SRT_CLIENT_SRC(object);
 	GstSRTClientSrcPrivate *priv = GST_SRT_CLIENT_SRC_GET_PRIVATE(self);
 
-	switch ((GstSRTClientSrcProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_POLL_TIMEOUT:
 		g_value_set_int(value, priv->poll_timeout);
+		break;
+	case PROP_LATENCY:
+		g_value_set_int(value, priv->latency);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -103,9 +109,12 @@ gst_srt_client_src_set_property(GObject * object,
 	GstSRTBaseSrc *self = GST_SRT_BASE_SRC(object);
 	GstSRTClientSrcPrivate *priv = GST_SRT_CLIENT_SRC_GET_PRIVATE(self);
 
-	switch ((GstSRTClientSrcProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_POLL_TIMEOUT:
 		priv->poll_timeout = g_value_get_int(value);
+		break;
+	case PROP_LATENCY:
+		priv->latency = g_value_get_int(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -250,6 +259,20 @@ gst_srt_client_src_start(GstBaseSrc * src)
 
 	}
 
+	/* Make SRT server socket non-blocking */
+	srt_setsockopt(priv->sock, 0, SRTO_SNDSYN, &(int) {
+		0}, sizeof(int));
+	
+	/* Make sure TSBPD mode is enable (SRT mode) */
+	srt_setsockopt(priv->sock, 0, SRTO_TSBPDMODE, &(int) {
+		1}, sizeof(int));
+
+	/* This is a source, we're always a receiver */
+	srt_setsockopt(priv->sock, 0, SRTO_SENDER, &(int) {
+		0}, sizeof(int));
+
+	srt_setsockopt(priv->sock, 0, SRTO_TSBPDDELAY, &priv->latency, sizeof(int));
+
 	priv->poll_id = srt_epoll_create();
 	if (priv->poll_id == -1) {
 		GST_WARNING_OBJECT(self,
@@ -333,8 +356,13 @@ gst_srt_client_src_class_init(GstSRTClientSrcClass * klass)
 			G_MAXINT32, SRT_DEFAULT_POLL_TIMEOUT,
 			G_PARAM_READWRITE | GST_PARAM_MUTABLE_READY | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_properties(gobject_class, G_N_ELEMENTS(properties),
-		properties);
+	properties[PROP_LATENCY] =
+		g_param_spec_int("latency", "latency",
+			"Minimum latency(milliseconds)", 0,
+			G_MAXINT32, SRT_DEFAULT_LATENCY,
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties(gobject_class, PROP_LAST,	properties);
 
 	gst_element_class_add_static_pad_template(gstelement_class, &src_template);
 	gst_element_class_set_metadata(gstelement_class,
@@ -356,4 +384,5 @@ gst_srt_client_src_init(GstSRTClientSrc * self)
 	priv->sock = SRT_ERROR;
 	priv->poll_id = SRT_ERROR;
 	priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
+	priv->latency = SRT_DEFAULT_LATENCY;
 }

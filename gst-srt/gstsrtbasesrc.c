@@ -36,16 +36,16 @@
 #define GST_CAT_DEFAULT gst_debug_srt_base_src
 GST_DEBUG_CATEGORY(GST_CAT_DEFAULT);
 
-typedef enum
+enum
 {
 	PROP_URI = 1,
 	PROP_CAPS,
 
 	/*< private > */
-	PROP_LAST = PROP_CAPS
-} GstSRTBaseSrcProperty;
+	PROP_LAST
+};
 
-static GParamSpec *properties[PROP_LAST + 1];
+static GParamSpec *properties[PROP_LAST];
 
 static void gst_srt_base_src_uri_handler_init(gpointer g_iface,
 	gpointer iface_data);
@@ -183,8 +183,7 @@ gst_srt_base_src_class_init(GstSRTBaseSrcClass * klass)
 		g_param_spec_boxed("caps", "Caps", "The caps of the source pad",
 			GST_TYPE_CAPS, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_properties(gobject_class, G_N_ELEMENTS(properties),
-		properties);
+	g_object_class_install_properties(gobject_class, PROP_LAST,	properties);
 
 	gstbasesrc_class->get_caps = GST_DEBUG_FUNCPTR(gst_srt_base_src_get_caps);
 }

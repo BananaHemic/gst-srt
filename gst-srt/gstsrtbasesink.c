@@ -38,14 +38,14 @@
 #define GST_CAT_DEFAULT gst_debug_srt_base_sink
 GST_DEBUG_CATEGORY(GST_CAT_DEFAULT);
 
-typedef enum
+enum
 {
 	PROP_URI = 1,
 	/*< private > */
-	PROP_LAST = PROP_URI
-} GstSRTBaseSinkProperty;
+	PROP_LAST
+};
 
-static GParamSpec *properties[PROP_LAST + 1];
+static GParamSpec *properties[PROP_LAST];
 
 static void gst_srt_base_sink_uri_handler_init(gpointer g_iface,
 	gpointer iface_data);
@@ -67,7 +67,7 @@ gst_srt_base_sink_get_property(GObject * object,
 {
 	GstSRTBaseSink *self = GST_SRT_BASE_SINK(object);
 
-	switch ((GstSRTBaseSinkProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_URI:
 		if (self->uri != NULL) {
 			gchar *uri_str = gst_srt_base_sink_uri_get_uri(GST_URI_HANDLER(self));
@@ -88,7 +88,7 @@ gst_srt_base_sink_set_property(GObject * object,
 {
 	GstSRTBaseSink *self = GST_SRT_BASE_SINK(object);
 
-	switch ((GstSRTBaseSinkProperty)prop_id) {
+	switch (prop_id) {
 	case PROP_URI:
 		gst_srt_base_sink_uri_set_uri(GST_URI_HANDLER(self),
 			g_value_get_string(value), NULL);
@@ -162,8 +162,7 @@ gst_srt_base_sink_class_init(GstSRTBaseSinkClass * klass)
 		"URI in the form of srt://address:port", SRT_DEFAULT_URI,
 		G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_properties(gobject_class, G_N_ELEMENTS(properties),
-		properties);
+	g_object_class_install_properties(gobject_class, PROP_LAST, properties);
 
 	gstbasesink_class->render = GST_DEBUG_FUNCPTR(gst_srt_base_sink_render);
 }
@@ -241,4 +240,59 @@ gst_srt_base_sink_uri_handler_init(gpointer g_iface, gpointer iface_data)
 	iface->get_protocols = gst_srt_base_sink_uri_get_protocols;
 	iface->get_uri = gst_srt_base_sink_uri_get_uri;
 	iface->set_uri = gst_srt_base_sink_uri_set_uri;
+}
+
+GstStructure *
+gst_srt_base_sink_get_stats(GSocketAddress * sockaddr, SRTSOCKET sock)
+{
+	SRT_TRACEBSTATS stats;
+	int ret;
+	GValue v = G_VALUE_INIT;
+	GstStructure *s;
+
+	if (sock == SRT_INVALID_SOCK || sockaddr == NULL)
+		return gst_structure_new_empty("application/x-srt-statistics");
+
+	s = gst_structure_new("application/x-srt-statistics",
+		"sockaddr", G_TYPE_SOCKET_ADDRESS, sockaddr, NULL);
+
+	ret = srt_bstats(sock, &stats, 0);
+	if (ret >= 0) {
+		gst_structure_set(s,
+			/* number of sent data packets, including retransmissions */
+			"packets-sent", G_TYPE_INT64, stats.pktSent,
+			/* number of lost packets (sender side) */
+			"packets-sent-lost", G_TYPE_INT, stats.pktSndLoss,
+			/* number of retransmitted packets */
+			"packets-retransmitted", G_TYPE_INT, stats.pktRetrans,
+			/* number of received ACK packets */
+			"packet-ack-received", G_TYPE_INT, stats.pktRecvACK,
+			/* number of received NAK packets */
+			"packet-nack-received", G_TYPE_INT, stats.pktRecvNAK,
+			/* time duration when UDT is sending data (idle time exclusive) */
+			"send-duration-us", G_TYPE_INT64, stats.usSndDuration,
+			/* number of sent data bytes, including retransmissions */
+			"bytes-sent", G_TYPE_UINT64, stats.byteSent,
+			/* number of retransmitted bytes */
+			"bytes-retransmitted", G_TYPE_UINT64, stats.byteRetrans,
+			/* number of too-late-to-send dropped bytes */
+			"bytes-sent-dropped", G_TYPE_UINT64, stats.byteSndDrop,
+			/* number of too-late-to-send dropped packets */
+			"packets-sent-dropped", G_TYPE_INT, stats.pktSndDrop,
+			/* sending rate in Mb/s */
+			"send-rate-mbps", G_TYPE_DOUBLE, stats.msRTT,
+			/* estimated bandwidth, in Mb/s */
+			"bandwidth-mbps", G_TYPE_DOUBLE, stats.mbpsBandwidth,
+			/* busy sending time (i.e., idle time exclusive) */
+			"send-duration-us", G_TYPE_UINT64, stats.usSndDuration,
+			"rtt-ms", G_TYPE_DOUBLE, stats.msRTT, NULL);
+
+	}
+
+	g_value_init(&v, G_TYPE_STRING);
+	g_value_take_string(&v,
+		g_socket_connectable_to_string(G_SOCKET_CONNECTABLE(sockaddr)));
+	gst_structure_take_value(s, "sockaddr-str", &v);
+
+	return s;
 }

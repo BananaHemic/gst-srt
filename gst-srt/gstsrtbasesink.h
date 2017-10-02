@@ -25,6 +25,9 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstbasesink.h>
+#include <gio/gio.h>
+
+#include <srt.h>
 
 G_BEGIN_DECLS
 
@@ -63,6 +66,9 @@ struct _GstSRTBaseSinkClass {
 
 GST_EXPORT
 GType gst_srt_base_sink_get_type(void);
+
+GstStructure * gst_srt_base_sink_get_stats(GSocketAddress *sockaddr,
+	SRTSOCKET sock);
 
 G_END_DECLS
 
