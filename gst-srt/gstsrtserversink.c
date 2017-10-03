@@ -161,6 +161,7 @@ gst_srt_server_sink_get_property(GObject * object,
 	{
 		GList *item;
 
+		g_mutex_lock(&priv->mutex);
 		for (item = priv->clients; item; item = item->next) {
 			SRTClient *client = item->data;
 			GValue tmp = G_VALUE_INIT;
@@ -170,6 +171,7 @@ gst_srt_server_sink_get_property(GObject * object,
 				client->sock));
 			gst_value_array_append_and_take_value(value, &tmp);
 		}
+		g_mutex_unlock(&priv->mutex);
 		break;
 	}
 	case PROP_LATENCY:
@@ -261,7 +263,9 @@ idle_listen_callback(gpointer data)
 
 	}
 
+	g_mutex_lock(&priv->mutex);
 	priv->clients = g_list_append(priv->clients, client);
+	g_mutex_unlock(&priv->mutex);
 	g_signal_emit(self, signals[SIG_CLIENT_ADDED], 0, client->sock,
 		client->sockaddr);
 	GST_DEBUG_OBJECT(self, "client added");
@@ -432,6 +436,7 @@ gst_srt_server_sink_send_buffer(GstSRTBaseSink * sink,
 	GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE(self);
 	GList *clients = priv->clients;
 
+	g_mutex_lock(&priv->mutex);
 	while (clients != NULL) {
 		SRTClient *client = clients->data;
 		clients = clients->next;
@@ -441,16 +446,12 @@ gst_srt_server_sink_send_buffer(GstSRTBaseSink * sink,
 			GST_WARNING_OBJECT(self, "Removing client. Reason: %s", srt_getlasterror_str());
 
 			priv->clients = g_list_remove(priv->clients, client);
-			//clients = g_list_remove(priv->clients, client);
-			g_list_remove(priv->clients, client);
-
 			g_signal_emit(self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
 				client->sockaddr);
 			srt_client_free(client);
-
 		}
-
 	}
+	g_mutex_unlock(&priv->mutex);
 
 	return TRUE;
 }
@@ -463,8 +464,10 @@ gst_srt_server_sink_stop(GstBaseSink * sink)
 	gboolean ret = TRUE;
 
 	GST_DEBUG_OBJECT(self, "closing client sockets");
+	g_mutex_lock(&priv->mutex);
 	g_list_foreach(priv->clients, (GFunc)srt_emit_client_removed, self);
 	g_list_free_full(priv->clients, (GDestroyNotify)srt_client_free);
+	g_mutex_unlock(&priv->mutex);
 
 	GST_DEBUG_OBJECT(self, "closing SRT connection");
 	srt_epoll_remove_usock(priv->poll_id, priv->sock);

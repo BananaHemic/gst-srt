@@ -270,6 +270,7 @@ gst_srt_server_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 
 	}
 	else if (recv_len == 0) {
+		GST_WARNING_OBJECT(self, "Server received nothing, closing");
 		ret = GST_FLOW_EOS;
 		goto out;
 
