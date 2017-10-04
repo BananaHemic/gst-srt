@@ -566,6 +566,6 @@ gst_srt_server_src_init(GstSRTServerSrc * self)
 	priv->client_sock = SRT_INVALID_SOCK;
 	priv->poll_id = SRT_ERROR;
 	priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
-	priv->wait_timeout = SRT_DEFAULT_TIMEOUT;
+	priv->wait_timeout = SRT_DEFAULT_WAIT_TIMEOUT;
 	priv->latency = SRT_DEFAULT_LATENCY;
 }
