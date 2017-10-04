@@ -221,7 +221,6 @@ failed:
 	if (priv->sock != SRT_INVALID_SOCK) {
 		srt_close(priv->sock);
 		priv->sock = SRT_INVALID_SOCK;
-
 	}
 
 	g_clear_error(&error);

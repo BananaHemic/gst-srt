@@ -49,7 +49,7 @@
 #define SRT_DEFAULT_PORT 7001
 #define SRT_DEFAULT_URI SRT_URI_SCHEME"://:"G_STRINGIFY(SRT_DEFAULT_PORT)
 #define SRT_DEFAULT_POLL_TIMEOUT 100
-#define SRT_DEFAULT_TIMEOUT -1
+#define SRT_DEFAULT_WAIT_TIMEOUT -1
 #define SRT_DEFAULT_LATENCY 125
 
 static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE("src",
@@ -68,7 +68,7 @@ struct _GstSRTServerSrcPrivate
 
 	gint poll_id;
 	gint poll_timeout;
-	gint timeout;
+	gint wait_timeout;
 	gint latency;
 
 	gboolean has_client;
@@ -81,7 +81,7 @@ struct _GstSRTServerSrcPrivate
 enum
 {
 	PROP_POLL_TIMEOUT = 1,
-	PROP_TIMEOUT,
+	PROP_WAIT_TIMEOUT,
 	PROP_LATENCY,
 
 	/*< private > */
@@ -117,8 +117,8 @@ gst_srt_server_src_get_property(GObject * object,
 	case PROP_POLL_TIMEOUT:
 		g_value_set_int(value, priv->poll_timeout);
 		break;
-	case PROP_TIMEOUT:
-		g_value_set_int(value, priv->timeout);
+	case PROP_WAIT_TIMEOUT:
+		g_value_set_int(value, priv->wait_timeout);
 		break;
 	case PROP_LATENCY:
 		g_value_set_int(value, priv->latency);
@@ -141,8 +141,9 @@ gst_srt_server_src_set_property(GObject * object,
 	case PROP_POLL_TIMEOUT:
 		priv->poll_timeout = g_value_get_int(value);
 		break;
-	case PROP_TIMEOUT:
-		priv->timeout = g_value_get_int(value);
+	case PROP_WAIT_TIMEOUT:
+		priv->wait_timeout = g_value_get_int(value);
+		break;
 	case PROP_LATENCY:
 		priv->latency = g_value_get_int(value);
 		break;
@@ -210,7 +211,7 @@ gst_srt_server_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 			}
 
 			/* Handle timeouts */
-			if (srt_errno == SRT_ETIMEOUT && (priv->timeout >= 0 && priv->timeout < timeWaiting)) {
+			if (srt_errno == SRT_ETIMEOUT && (priv->wait_timeout >= 0 && priv->wait_timeout < timeWaiting)) {
 				GST_WARNING_OBJECT(self, "timed out waiting for client");
 				return GST_FLOW_EOS;
 			}
@@ -498,8 +499,8 @@ gst_srt_server_src_class_init(GstSRTServerSrcClass * klass)
 		"Return poll wait after timeout miliseconds", 0, G_MAXINT32,
 		SRT_DEFAULT_POLL_TIMEOUT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	properties[PROP_TIMEOUT] =
-		g_param_spec_int("timeout", "Timeout",
+	properties[PROP_WAIT_TIMEOUT] =
+		g_param_spec_int("wait-timeout", "Wait Timeout",
 		"Gives up establishing a connection after timeout milliseconds", -1, G_MAXINT32,
 		SRT_DEFAULT_POLL_TIMEOUT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
@@ -565,6 +566,6 @@ gst_srt_server_src_init(GstSRTServerSrc * self)
 	priv->client_sock = SRT_INVALID_SOCK;
 	priv->poll_id = SRT_ERROR;
 	priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
-	priv->timeout = SRT_DEFAULT_TIMEOUT;
+	priv->wait_timeout = SRT_DEFAULT_TIMEOUT;
 	priv->latency = SRT_DEFAULT_LATENCY;
 }
