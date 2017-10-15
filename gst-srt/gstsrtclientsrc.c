@@ -154,7 +154,7 @@ gst_srt_client_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 	SRTSOCKET ready[2];
 	gint recv_len;
 
-	GST_DEBUG("Will fill");
+	//GST_DEBUG("Will fill");
 	if (srt_epoll_wait(priv->poll_id, 0, 0, ready, &(int) {
 		2}, priv->poll_timeout, 0, 0, 0, 0) == -1) {
 
@@ -170,7 +170,7 @@ gst_srt_client_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 		srt_clearlasterror();
 		goto out;
 	}
-	GST_DEBUG("Filled");
+	//GST_DEBUG("Filled");
 
 
 	if (!gst_buffer_map(outbuf, &info, GST_MAP_WRITE)) {
@@ -181,10 +181,10 @@ gst_srt_client_src_fill(GstPushSrc * src, GstBuffer * outbuf)
 
 	}
 
-	GST_DEBUG("Will recv");
+	//GST_DEBUG("Will recv");
 	recv_len = srt_recvmsg(priv->sock, (char *)info.data,
 		gst_buffer_get_size(outbuf));
-	GST_DEBUG("recieved");
+	//GST_DEBUG("recieved");
 
 	gst_buffer_unmap(outbuf, &info);
 
@@ -324,13 +324,26 @@ gst_srt_client_src_stop(GstBaseSrc * src)
 	GstSRTClientSrc *self = GST_SRT_CLIENT_SRC(src);
 	GstSRTClientSrcPrivate *priv = GST_SRT_CLIENT_SRC_GET_PRIVATE(self);
 
+	/* This is now handled in unlock
 	srt_epoll_remove_usock(priv->poll_id, priv->sock);
 	srt_epoll_release(priv->poll_id);
 
 	GST_DEBUG_OBJECT(self, "closing SRT connection");
 	srt_close(priv->sock);
+	*/
 
 	return TRUE;
+}
+
+static gboolean
+gst_srt_client_src_unlock(GstBaseSrc * src)
+{
+	GstSRTClientSrc *self = GST_SRT_CLIENT_SRC(src);
+	GstSRTClientSrcPrivate *priv = GST_SRT_CLIENT_SRC_GET_PRIVATE(self);
+	GST_DEBUG_OBJECT(self, "unlocking client SRT connection");
+	srt_epoll_remove_usock(priv->poll_id, priv->sock);
+	srt_epoll_release(priv->poll_id);
+	srt_close(priv->sock);
 }
 
 static void
@@ -372,7 +385,7 @@ gst_srt_client_src_class_init(GstSRTClientSrcClass * klass)
 
 	gstbasesrc_class->start = GST_DEBUG_FUNCPTR(gst_srt_client_src_start);
 	gstbasesrc_class->stop = GST_DEBUG_FUNCPTR(gst_srt_client_src_stop);
-
+	gstbasesrc_class->unlock = GST_DEBUG_FUNCPTR(gst_srt_client_src_unlock);
 	gstpushsrc_class->fill = GST_DEBUG_FUNCPTR(gst_srt_client_src_fill);
 }
 
