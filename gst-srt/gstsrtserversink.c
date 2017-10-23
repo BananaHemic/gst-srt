@@ -143,7 +143,7 @@ srt_emit_client_removed(SRTClient * client, gpointer user_data)
 	g_return_if_fail(client != NULL && GST_IS_SRT_SERVER_SINK(self));
 
 	g_signal_emit(self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
-		&client->sockaddr);
+		client->sockaddr);
 }
 
 static void
