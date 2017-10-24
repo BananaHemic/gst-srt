@@ -321,10 +321,10 @@ failed:
 static gboolean
 gst_srt_client_src_stop(GstBaseSrc * src)
 {
+	/* This is now handled in unlock
 	GstSRTClientSrc *self = GST_SRT_CLIENT_SRC(src);
 	GstSRTClientSrcPrivate *priv = GST_SRT_CLIENT_SRC_GET_PRIVATE(self);
 
-	/* This is now handled in unlock
 	srt_epoll_remove_usock(priv->poll_id, priv->sock);
 	srt_epoll_release(priv->poll_id);
 
@@ -344,6 +344,7 @@ gst_srt_client_src_unlock(GstBaseSrc * src)
 	srt_epoll_remove_usock(priv->poll_id, priv->sock);
 	srt_epoll_release(priv->poll_id);
 	srt_close(priv->sock);
+	return TRUE;
 }
 
 static void
