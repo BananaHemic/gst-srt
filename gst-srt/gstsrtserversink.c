@@ -263,11 +263,11 @@ idle_listen_callback(gpointer data)
 
 	}
 
+	g_signal_emit(self, signals[SIG_CLIENT_ADDED], 0, client->sock,
+		client->sockaddr);
 	g_mutex_lock(&priv->mutex);
 	priv->clients = g_list_append(priv->clients, client);
 	g_mutex_unlock(&priv->mutex);
-	g_signal_emit(self, signals[SIG_CLIENT_ADDED], 0, client->sock,
-		client->sockaddr);
 	GST_DEBUG_OBJECT(self, "client added");
 
 out:
@@ -344,7 +344,7 @@ gst_srt_server_sink_start(GstBaseSink * sink)
 
 	/* Make SRT non-blocking */
 	srt_setsockopt(priv->sock, 0, SRTO_SNDSYN, &(int) {
-		0}, sizeof(int));
+		1}, sizeof(int));
 
 	/* Make sure TSBPD mode is enable (SRT mode) */
 	srt_setsockopt(priv->sock, 0, SRTO_TSBPDMODE, &(int) {
@@ -436,22 +436,22 @@ gst_srt_server_sink_send_buffer(GstSRTBaseSink * sink,
 	GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE(self);
 	GList *clients = priv->clients;
 
-	g_mutex_lock(&priv->mutex);
 	while (clients != NULL) {
+		g_mutex_lock(&priv->mutex);
 		SRTClient *client = clients->data;
 		clients = clients->next;
 
 		if (srt_sendmsg2(client->sock, (char *)mapinfo->data, mapinfo->size,
 			0) == SRT_ERROR) {
-			GST_WARNING_OBJECT(self, "Removing client. Reason: %s", srt_getlasterror_str());
+			GST_WARNING_OBJECT(self, "Removing client Code:%d Reason: %s", srt_getlasterror(NULL), srt_getlasterror_str());
 
 			priv->clients = g_list_remove(priv->clients, client);
 			g_signal_emit(self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
 				client->sockaddr);
 			srt_client_free(client);
 		}
+		g_mutex_unlock(&priv->mutex);
 	}
-	g_mutex_unlock(&priv->mutex);
 
 	return TRUE;
 }
