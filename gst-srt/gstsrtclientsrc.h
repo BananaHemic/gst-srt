@@ -54,6 +54,7 @@ struct _GstSRTClientSrc {
 };
 
 struct _GstSRTClientSrcClass {
+
 	GstSRTBaseSrcClass parent_class;
 
 	gpointer _gst_reserved[GST_PADDING_LARGE];

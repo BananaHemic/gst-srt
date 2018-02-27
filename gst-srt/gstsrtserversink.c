@@ -224,7 +224,7 @@ idle_listen_callback(gpointer data)
 	gboolean ret = TRUE;
 
 	SRTClient *client;
-	SRTSOCKET ready[2];
+	SRTSOCKET ready[2];//TODO why is this 2? (stransmit also has it as 2)
 	struct sockaddr sa;
 	int sa_len;
 
