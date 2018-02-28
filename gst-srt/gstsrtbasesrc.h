@@ -23,6 +23,9 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstpushsrc.h>
+#include <gio/gio.h>
+
+#include <srt.h>
 
 G_BEGIN_DECLS
 
@@ -58,6 +61,8 @@ struct _GstSRTBaseSrcClass {
 
 GST_EXPORT
 GType gst_srt_base_src_get_type(void);
+
+GstStructure * gst_srt_base_src_get_stats(SRTSOCKET sock);
 
 G_END_DECLS
 

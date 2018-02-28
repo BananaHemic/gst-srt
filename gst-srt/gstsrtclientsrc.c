@@ -67,6 +67,7 @@ struct _GstSRTClientSrcPrivate
 enum
 {
 	PROP_POLL_TIMEOUT = 1,
+	PROP_STATS,
 	PROP_LATENCY,
 
 	/*< private > */
@@ -91,6 +92,9 @@ gst_srt_client_src_get_property(GObject * object,
 	switch (prop_id) {
 	case PROP_POLL_TIMEOUT:
 		g_value_set_int(value, priv->poll_timeout);
+		break;
+	case PROP_STATS:
+		g_value_take_boxed(value, gst_srt_base_src_get_stats(priv->sock));
 		break;
 	case PROP_LATENCY:
 		g_value_set_int(value, priv->latency);
@@ -369,6 +373,10 @@ gst_srt_client_src_class_init(GstSRTClientSrcClass * klass)
 			"Return poll wait after timeout miliseconds (-1 = infinite)", -1,
 			G_MAXINT32, SRT_DEFAULT_POLL_TIMEOUT,
 			G_PARAM_READWRITE | GST_PARAM_MUTABLE_READY | G_PARAM_STATIC_STRINGS);
+
+	properties[PROP_STATS] = g_param_spec_boxed("stats", "Statistics",
+		"SRT Statistics", GST_TYPE_STRUCTURE,
+		G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
 	properties[PROP_LATENCY] =
 		g_param_spec_int("latency", "latency",

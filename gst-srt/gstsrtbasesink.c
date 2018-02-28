@@ -280,7 +280,7 @@ gst_srt_base_sink_get_stats(GSocketAddress * sockaddr, SRTSOCKET sock)
 			/* number of too-late-to-send dropped packets */
 			"packets-sent-dropped", G_TYPE_INT, stats.pktSndDrop,
 			/* sending rate in Mb/s */
-			"send-rate-mbps", G_TYPE_DOUBLE, stats.msRTT,
+			"send-rate-mbps", G_TYPE_DOUBLE, stats.mbpsSendRate,
 			/* estimated bandwidth, in Mb/s */
 			"bandwidth-mbps", G_TYPE_DOUBLE, stats.mbpsBandwidth,
 			/* busy sending time (i.e., idle time exclusive) */

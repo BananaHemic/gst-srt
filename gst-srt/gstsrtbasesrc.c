@@ -120,6 +120,49 @@ gst_srt_base_src_finalize(GObject * object)
 
 	G_OBJECT_CLASS(parent_class)->finalize(object);
 }
+GstStructure *
+gst_srt_base_src_get_stats(SRTSOCKET sock)
+{
+	SRT_TRACEBSTATS stats;
+	int ret;
+	GstStructure *s;
+
+	if (sock == SRT_INVALID_SOCK)
+		return gst_structure_new_empty("application/x-srt-statistics");
+
+	s = gst_structure_new("application/x-srt-statistics", NULL);
+
+	ret = srt_bstats(sock, &stats, 0);
+	if (ret >= 0) {
+		gst_structure_set(s,
+			/* number of received data packets */
+			"packets-recv", G_TYPE_INT64, stats.pktRecv,
+			/* number of lost packets, receiver side (some packets lost is expected) */
+			"packets-recv-lost", G_TYPE_INT, stats.pktRcvLoss,
+			/* number of retransmitted packets */
+			"packets-retransmitted", G_TYPE_INT, stats.pktRetrans,
+			/* number of received ACK packets */
+			"packet-ack-received", G_TYPE_INT, stats.pktRecvACK,
+			/* number of received NAK packets */
+			"packet-nack-received", G_TYPE_INT, stats.pktRecvNAK,
+			/* number of received data bytes */
+			"bytes-received", G_TYPE_UINT64, stats.byteRecv,
+			/* number of retransmitted bytes */
+			"bytes-retransmitted", G_TYPE_UINT64, stats.byteRetrans,
+			/* number of too-late-to-play dropped bytes  (estimate based on average packet size) */
+			"bytes-recv-dropped", G_TYPE_UINT64, stats.byteRcvLoss,
+			/* number of too-late-to-play dropped packets */
+			"packets-recv-dropped", G_TYPE_INT, stats.pktRcvDrop,
+			/* receiving rate in Mb/s */
+			"recv-rate-mbps", G_TYPE_DOUBLE, stats.mbpsRecvRate,
+			/* estimated bandwidth, in Mb/s */
+			"bandwidth-mbps", G_TYPE_DOUBLE, stats.mbpsBandwidth,
+			/* RTT, in milliseconds */
+			"rtt-ms", G_TYPE_DOUBLE, stats.msRTT, NULL);
+	}
+
+	return s;
+}
 
 static GstCaps *
 gst_srt_base_src_get_caps(GstBaseSrc * src, GstCaps * filter)
