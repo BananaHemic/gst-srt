@@ -89,7 +89,7 @@
       <AdditionalDependencies>..\..\srt-build\Release\*.lib;$(GSTREAMER_1_0_ROOT_X86_64)\lib\*.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\ &amp;&amp; copy ..\..\srt-build\Release\srt.*  $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
+      <Command>copy "$(TargetPath)" $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\ &amp;&amp; copy ..\..\srt-build\Release\srt.*  $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copying to gst lib folder $(GSTREAMER_1_0_ROOT_X86_64)</Message>
@@ -124,7 +124,7 @@
       <AdditionalDependencies>..\..\srt-build\Release\*.lib;$(GSTREAMER_1_0_ROOT_X86_64)\lib\*.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\ &amp;&amp; copy ..\..\srt-build\Release\srt.*  $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
+      <Command>copy "$(TargetPath)" $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\ &amp;&amp; copy ..\..\srt-build\Release\srt.*  $(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copying to gst lib folder $(GSTREAMER_1_0_ROOT_X86_64)</Message>
