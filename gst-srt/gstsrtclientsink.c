@@ -79,7 +79,9 @@ enum
   PROP_BIND_ADDRESS,
   PROP_BIND_PORT,
   PROP_RENDEZ_VOUS,
+#if GST_VERSION_MINOR >= 14
   PROP_STATS,
+#endif
   /*< private > */
   PROP_LAST
 };
@@ -112,10 +114,12 @@ gst_srt_client_sink_get_property (GObject * object,
   case PROP_RENDEZ_VOUS:
     g_value_set_boolean (value, priv->bind_port);
     break;
+#if GST_VERSION_MINOR >= 14
   case PROP_STATS:
     g_value_take_boxed (value, gst_srt_base_sink_get_stats (priv->sockaddr,
       priv->sock));
     break;
+#endif
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     break;
@@ -259,9 +263,11 @@ gst_srt_client_sink_class_init (GstSRTClientSinkClass * klass)
       "Work in Rendez-Vous mode instead of client/caller mode", FALSE,
       G_PARAM_READWRITE | GST_PARAM_MUTABLE_READY | G_PARAM_STATIC_STRINGS);
 
+#if GST_VERSION_MINOR >= 14
   properties[PROP_STATS] = g_param_spec_boxed ("stats", "Statistics",
     "SRT Statistics", GST_TYPE_STRUCTURE,
     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+#endif
 
   g_object_class_install_properties (gobject_class, PROP_LAST, properties);
 

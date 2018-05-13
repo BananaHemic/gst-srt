@@ -79,7 +79,9 @@ struct _GstSRTServerSinkPrivate
 enum
 {
   PROP_POLL_TIMEOUT = 1,
+#if GST_VERSION_MINOR >= 14
   PROP_STATS,
+#endif
   /*< private > */
   PROP_LAST
 };
@@ -153,6 +155,7 @@ gst_srt_server_sink_get_property (GObject * object,
   case PROP_POLL_TIMEOUT:
     g_value_set_int (value, priv->poll_timeout);
     break;
+#if GST_VERSION_MINOR >= 14
   case PROP_STATS:
   {
     GList *item;
@@ -170,6 +173,7 @@ gst_srt_server_sink_get_property (GObject * object,
     GST_OBJECT_UNLOCK (self);
     break;
   }
+#endif
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     break;
@@ -538,12 +542,14 @@ gst_srt_server_sink_class_init (GstSRTServerSinkClass * klass)
       G_MAXINT32, SRT_DEFAULT_POLL_TIMEOUT,
       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
+#if GST_VERSION_MINOR >= 14
   properties[PROP_STATS] = gst_param_spec_array ("stats", "Statistics",
     "Array of GstStructures containing SRT statistics",
     g_param_spec_boxed ("stats", "Statistics",
       "Statistics for one client", GST_TYPE_STRUCTURE,
       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS),
     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+#endif
 
   g_object_class_install_properties (gobject_class, PROP_LAST, properties);
 
