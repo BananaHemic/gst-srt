@@ -82,7 +82,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;..\..\srt-src\srtcore;C:\pthread-win32\include;..\..\srt-src\common;..\..\srt-src\haicrypt</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;..\..\srt-src\srtcore;C:\pthread-win32\include;..\..\srt-src\common;..\..\srt-src\haicrypt;..\..\srt-build</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINDLL;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -115,7 +115,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;..\..\srt-src\srtcore;C:\pthread-win32\include;..\..\srt-src\common;..\..\srt-src\haicrypt</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>;$(GSTREAMER_1_0_ROOT_X86_64)lib\gstreamer-1.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include\gstreamer-1.0;$(GSTREAMER_1_0_ROOT_X86_64)include\glib-2.0;$(GSTREAMER_1_0_ROOT_X86_64)lib\glib-2.0\include;$(GSTREAMER_1_0_ROOT_X86_64)include;..\..\srt-src\srtcore;C:\pthread-win32\include;..\..\srt-src\common;..\..\srt-src\haicrypt;..\..\srt-build</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINDLL;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
