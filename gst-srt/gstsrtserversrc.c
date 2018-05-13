@@ -338,6 +338,10 @@ gst_srt_server_src_start (GstBaseSrc * src)
   srt_setsockopt (priv->sock, 0, SRTO_TSBPDMODE, &(int) {
     1}, sizeof (int));
 
+  /* srt recommends disabling linger */
+  srt_setsockopt (priv->sock, 0, SRTO_LINGER, &(int) {
+    0}, sizeof (int));
+
   /* This is a source, we're always a receiver */
   srt_setsockopt (priv->sock, 0, SRTO_SENDER, &(int) {
     0}, sizeof (int));
@@ -407,6 +411,8 @@ gst_srt_server_src_stop (GstBaseSrc * src)
   GstSRTServerSrc *self = GST_SRT_SERVER_SRC (src);
   GstSRTServerSrcPrivate *priv = GST_SRT_SERVER_SRC_GET_PRIVATE (self);
 
+  GST_DEBUG_OBJECT (self, "stopping SRT server src");
+
   if (priv->client_sock != SRT_INVALID_SOCK) {
     g_signal_emit (self, signals[SIG_CLIENT_ADDED], 0,
       priv->client_sock, priv->client_sockaddr);
@@ -439,7 +445,13 @@ gst_srt_server_src_unlock (GstBaseSrc * src)
   GstSRTServerSrc *self = GST_SRT_SERVER_SRC (src);
   GstSRTServerSrcPrivate *priv = GST_SRT_SERVER_SRC_GET_PRIVATE (self);
 
+  GST_DEBUG_OBJECT (self, "unlocking SRT server src");
   priv->cancelled = TRUE;
+  if (priv->poll_id != SRT_ERROR) {
+    srt_epoll_remove_usock (priv->poll_id, priv->sock);
+    srt_epoll_release (priv->poll_id);
+    priv->poll_id = SRT_ERROR;
+  }
 
   return TRUE;
 }

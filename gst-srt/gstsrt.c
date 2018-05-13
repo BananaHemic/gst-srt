@@ -80,8 +80,9 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   srt_setsockopt (sock, 0, SRTO_TSBPDMODE, &(int) {
     1}, sizeof (int));
 
-  //TODO set live mode
-  //TODO set srt linger off
+  /* srt recommends disabling linger */
+  srt_setsockopt (sock, 0, SRTO_LINGER, &(int) {
+    0}, sizeof (int));
 
   /* If this is a sink, we're a receiver, otherwise we're a sender */
   srt_setsockopt (sock, 0, SRTO_SENDER, &sender, sizeof (int));

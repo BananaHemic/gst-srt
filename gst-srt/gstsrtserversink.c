@@ -339,6 +339,10 @@ gst_srt_server_sink_start (GstBaseSink * sink)
   srt_setsockopt (priv->sock, 0, SRTO_TSBPDMODE, &(int) {
     1}, sizeof (int));
 
+  /* srt recommends disabling linger */
+  srt_setsockopt (priv->sock, 0, SRTO_LINGER, &(int) {
+    0}, sizeof (int));
+
   /* This is a sink, we're always a sender */
   srt_setsockopt (priv->sock, 0, SRTO_SENDER, &(int) {
     1}, sizeof (int));
