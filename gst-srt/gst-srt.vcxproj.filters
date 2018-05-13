@@ -56,5 +56,8 @@
     <ClInclude Include="gstsrtserversrc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gstsrt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

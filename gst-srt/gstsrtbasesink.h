@@ -44,31 +44,39 @@ typedef struct _GstSRTBaseSink GstSRTBaseSink;
 typedef struct _GstSRTBaseSinkClass GstSRTBaseSinkClass;
 
 struct _GstSRTBaseSink {
-	GstBaseSink parent;
+  GstBaseSink parent;
+  GstUri *uri;
+  GstBufferList *headers;
+  gint latency;
+  gchar *passphrase;
+  gint key_length;
 
-	GstUri *uri;
-	GList *queued_buffers;
-
-	/*< private >*/
-	gpointer _gst_reserved[GST_PADDING];
+  /*< private >*/
+  gpointer _gst_reserved[GST_PADDING];
 
 };
 
 struct _GstSRTBaseSinkClass {
-	GstBaseSinkClass parent_class;
+  GstBaseSinkClass parent_class;
 
-	/* ask the subclass to send a buffer */
-	gboolean(*send_buffer)       (GstSRTBaseSink *self, const GstMapInfo *mapinfo);
+  /* ask the subclass to send a buffer */
+  gboolean (*send_buffer)       (GstSRTBaseSink *self, const GstMapInfo *mapinfo);
 
-	gpointer _gst_reserved[GST_PADDING_LARGE];
+  gpointer _gst_reserved[GST_PADDING_LARGE];
 
 };
 
 GST_EXPORT
-GType gst_srt_base_sink_get_type(void);
+GType gst_srt_base_sink_get_type (void);
 
-GstStructure * gst_srt_base_sink_get_stats(GSocketAddress *sockaddr,
-	SRTSOCKET sock);
+typedef gboolean (*GstSRTBaseSinkSendCallback) (GstSRTBaseSink *sink,
+  const GstMapInfo *mapinfo, gpointer user_data);
+
+gboolean gst_srt_base_sink_send_headers (GstSRTBaseSink *sink,
+  GstSRTBaseSinkSendCallback send_cb, gpointer user_data);
+
+GstStructure * gst_srt_base_sink_get_stats (GSocketAddress *sockaddr,
+  SRTSOCKET sock);
 
 G_END_DECLS
 

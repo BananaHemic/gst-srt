@@ -42,27 +42,30 @@ typedef struct _GstSRTBaseSrc GstSRTBaseSrc;
 typedef struct _GstSRTBaseSrcClass GstSRTBaseSrcClass;
 
 struct _GstSRTBaseSrc {
-	GstPushSrc parent;
+  GstPushSrc parent;
 
-	GstUri *uri;
-	GstCaps *caps;
+  GstUri *uri;
+  GstCaps *caps;
+  gint latency;
+  gchar *passphrase;
+  gint key_length;
 
-	/*< private >*/
-	gpointer _gst_reserved[GST_PADDING];
+  /*< private >*/
+  gpointer _gst_reserved[GST_PADDING];
 
 };
 
 struct _GstSRTBaseSrcClass {
-	GstPushSrcClass parent_class;
+  GstPushSrcClass parent_class;
 
-	gpointer _gst_reserved[GST_PADDING_LARGE];
+  gpointer _gst_reserved[GST_PADDING_LARGE];
 
 };
 
 GST_EXPORT
-GType gst_srt_base_src_get_type(void);
+GType gst_srt_base_src_get_type (void);
 
-GstStructure * gst_srt_base_src_get_stats(SRTSOCKET sock);
+GstStructure * gst_srt_base_src_get_stats (SRTSOCKET sock);
 
 G_END_DECLS
 

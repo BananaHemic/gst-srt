@@ -32,7 +32,7 @@
 
 G_BEGIN_DECLS
 
-#define GST_TYPE_SRT_CLIENT_SRC               (gst_srt_client_src_get_type ())
+#define GST_TYPE_SRT_CLIENT_SRC              (gst_srt_client_src_get_type ())
 #define GST_IS_SRT_CLIENT_SRC(obj)           (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_SRT_CLIENT_SRC))
 #define GST_IS_SRT_CLIENT_SRC_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_SRT_CLIENT_SRC))
 #define GST_SRT_CLIENT_SRC_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS((obj), GST_TYPE_SRT_CLIENT_SRC, GstSRTClientSrcClass))
@@ -46,23 +46,22 @@ typedef struct _GstSRTClientSrcClass GstSRTClientSrcClass;
 typedef struct _GstSRTClientSrcPrivate GstSRTClientSrcPrivate;
 
 struct _GstSRTClientSrc {
-	GstSRTBaseSrc parent;
+  GstSRTBaseSrc parent;
 
-	/*< private >*/
-	gpointer _gst_reserved[GST_PADDING];
-
+  /*< private >*/
+  gpointer _gst_reserved[GST_PADDING];
 };
 
 struct _GstSRTClientSrcClass {
 
-	GstSRTBaseSrcClass parent_class;
+  GstSRTBaseSrcClass parent_class;
 
-	gpointer _gst_reserved[GST_PADDING_LARGE];
-
+  gpointer _gst_reserved[GST_PADDING_LARGE];
 };
 
 GST_EXPORT
-GType gst_srt_client_src_get_type(void);
+GType gst_srt_client_src_get_type (void);
 
 G_END_DECLS
+
 #endif /* __GST_SRT_CLIENT_SRC_H__ */
