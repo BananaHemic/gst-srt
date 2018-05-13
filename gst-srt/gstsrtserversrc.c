@@ -77,6 +77,9 @@ enum
 {
   PROP_POLL_TIMEOUT = 1,
   PROP_WAIT_TIMEOUT,
+#if GST_VERSION_MINOR >= 14
+  PROP_STATS,
+#endif
 
   /*< private > */
   PROP_LAST
@@ -114,10 +117,14 @@ gst_srt_server_src_get_property (GObject * object,
   case PROP_WAIT_TIMEOUT:
     g_value_set_int (value, priv->wait_timeout);
     break;
+#if GST_VERSION_MINOR >= 14
+  case PROP_STATS:
+    g_value_take_boxed (value, gst_srt_base_src_get_stats (priv->sock));
+    break;
+#endif
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     break;
-
   }
 }
 
@@ -495,6 +502,12 @@ gst_srt_server_src_class_init (GstSRTServerSrcClass * klass)
     g_param_spec_int ("wait-timeout", "Wait Timeout",
       "Gives up establishing a connection after timeout milliseconds", -1, G_MAXINT32,
       SRT_DEFAULT_POLL_TIMEOUT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+#if GST_VERSION_MINOR >= 14
+  properties[PROP_STATS] = g_param_spec_boxed ("stats", "Statistics",
+    "SRT Statistics", GST_TYPE_STRUCTURE,
+    G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+#endif
 
   g_object_class_install_properties (gobject_class, PROP_LAST, properties);
 
