@@ -243,7 +243,7 @@ gst_srt_server_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   }
 
   recv_len = srt_recvmsg (priv->client_sock, (char *)info.data,
-    gst_buffer_get_size (outbuf));
+    (int)gst_buffer_get_size (outbuf));
 
   gst_buffer_unmap (outbuf, &info);
 
@@ -357,7 +357,7 @@ gst_srt_server_src_start (GstBaseSrc * src)
 
   if (base->passphrase != NULL && base->passphrase[0] != '\0') {
     srt_setsockopt (priv->sock, 0, SRTO_PASSPHRASE,
-      base->passphrase, strlen (base->passphrase));
+      base->passphrase, (int)strlen (base->passphrase));
     srt_setsockopt (priv->sock, 0, SRTO_PBKEYLEN,
       &base->key_length, sizeof (int));
   }
@@ -376,7 +376,7 @@ gst_srt_server_src_start (GstBaseSrc * src)
   // I get an occassional exception here
   // srtserversrc gstsrtserversrc.c:345:gst_srt_server_src_start:<source> failed to bind SRT server socket
   // (reason: Connection setup failure: unable to create/configure SRT socket: The requested address is not valid in its context.
-  if (srt_bind (priv->sock, &sa, sa_len) == SRT_ERROR) {
+  if (srt_bind (priv->sock, &sa, (int)sa_len) == SRT_ERROR) {
     GST_ELEMENT_ERROR (self, RESOURCE, OPEN_READ, (NULL),
       ("failed to bind SRT server socket (reason: %s) (Are you sure you didn't want to use srtclientsrc instead?",
       srt_getlasterror_str ()));

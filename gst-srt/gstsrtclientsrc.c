@@ -208,7 +208,7 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
 
   //GST_DEBUG("Will recv");
   recv_len = srt_recvmsg (priv->sock, (char *)info.data,
-    gst_buffer_get_size (outbuf));
+    (int)gst_buffer_get_size (outbuf));
   //GST_DEBUG("recieved");
 
   gst_buffer_unmap (outbuf, &info);
@@ -257,6 +257,7 @@ gst_srt_client_src_start (GstBaseSrc * src)
     gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendez_vous,
     priv->bind_address, priv->bind_port, base->latency,
     &socket_address, &priv->poll_id, base->passphrase, base->key_length);
+  GST_DEBUG_OBJECT (self, "SRT client src connected");
 
   g_clear_object (&socket_address);
   g_clear_pointer (&uri, gst_uri_unref);

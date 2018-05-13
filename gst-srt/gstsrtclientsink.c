@@ -179,7 +179,7 @@ send_buffer_internal (GstSRTBaseSink * sink,
 {
   SRTSOCKET sock = GPOINTER_TO_INT (user_data);
 
-  if (srt_sendmsg2 (sock, (char *)mapinfo->data, mapinfo->size,
+  if (srt_sendmsg2 (sock, (char *)mapinfo->data, (int)mapinfo->size,
     0) == SRT_ERROR) {
     GST_ELEMENT_ERROR (sink, RESOURCE, WRITE, NULL,
       ("%s", srt_getlasterror_str ()));

@@ -359,7 +359,7 @@ gst_srt_server_sink_start (GstBaseSink * sink)
   srt_epoll_add_usock (priv->poll_id, priv->sock, &(int) {
     SRT_EPOLL_IN});
 
-  if (srt_bind (priv->sock, &sa, sa_len) == SRT_ERROR) {
+  if (srt_bind (priv->sock, &sa, (int)sa_len) == SRT_ERROR) {
     GST_WARNING_OBJECT (self, "failed to bind SRT server socket (reason: %s)",
       srt_getlasterror_str ());
     goto failed;
@@ -422,7 +422,7 @@ send_buffer_internal (GstSRTBaseSink * sink,
 {
   SRTClient *client = user_data;
 
-  if (srt_sendmsg2 (client->sock, (char *)mapinfo->data, mapinfo->size,
+  if (srt_sendmsg2 (client->sock, (char *)mapinfo->data, (int)mapinfo->size,
     0) == SRT_ERROR) {
     GST_WARNING_OBJECT (sink, "Removing client Code:%d Reason: %s",
       srt_getlasterror (NULL), srt_getlasterror_str ());

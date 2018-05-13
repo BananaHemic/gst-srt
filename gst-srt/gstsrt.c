@@ -92,7 +92,7 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   srt_setsockopt (sock, 0, SRTO_RENDEZVOUS, &rendez_vous, sizeof (int));
 
   if (passphrase != NULL && passphrase[0] != '\0') {
-    srt_setsockopt (sock, 0, SRTO_PASSPHRASE, passphrase, strlen (passphrase));
+    srt_setsockopt (sock, 0, SRTO_PASSPHRASE, passphrase, (int)strlen (passphrase));
     srt_setsockopt (sock, 0, SRTO_PBKEYLEN, &key_length, sizeof (int));
   }
 
@@ -126,7 +126,7 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
     }
     g_clear_object (&b_socket_address);
 
-    if (srt_bind (sock, bsa, bsa_len) == SRT_ERROR) {
+    if (srt_bind (sock, bsa, (int)bsa_len) == SRT_ERROR) {
       GST_ELEMENT_ERROR (elem, RESOURCE, OPEN_READ,
         ("Can't bind to address"),
         ("Can't bind to %s:%d (reason: %s)", bind_address, bind_port,
@@ -146,7 +146,7 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   srt_epoll_add_usock (*poll_id, sock, &(int) {
     SRT_EPOLL_OUT});
 
-  if (srt_connect (sock, sa, sa_len) == SRT_ERROR) {
+  if (srt_connect (sock, sa, (int)sa_len) == SRT_ERROR) {
     GST_ELEMENT_ERROR (elem, RESOURCE, OPEN_READ, ("Connection error"),
       ("failed to connect to host (reason: %s)", srt_getlasterror_str ()));
     goto failed;
