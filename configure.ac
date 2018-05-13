@@ -66,7 +66,7 @@ save_CFLAGS="$CFLAGS"
 #INC_DIR="../srt/srtcore"
 #CFLAGS="$CFLAGS -Wall -I ../../srt/srtcore"
 SRT_LIBS=-lsrt
-CFLAGS="$CFLAGS -Wall -I ../../srt/srtcore -Wl,-z,defs"
+CFLAGS="$CFLAGS -Wall -I ../../srt/srtcore -I ../../srt -Wl,-z,defs"
 #CFLAGS="$CFLAGS -Wall -I ../../srt/srtcore -Wl,-z,defs -lsrt"
 #CFLAGS="$CFLAGS -Wall"
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([ ], [ ])], [
