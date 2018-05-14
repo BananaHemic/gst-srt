@@ -68,6 +68,14 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
     goto failed;
   }
 
+  GSocketFamily address_family = g_socket_address_get_family (*socket_address);
+  if (address_family == AF_INET)
+      GST_LOG_OBJECT (elem, "Using IPv4");
+  else if(address_family == AF_INET6)
+      GST_WARNING_OBJECT (elem, "Using IPv6 with SRT, this is not fully supported");
+  else if(address_family == AF_UNIX)
+      GST_WARNING_OBJECT (elem, "Using Unix socket with SRT, this is not fully supported");
+
   sock = srt_socket (g_socket_address_get_family (*socket_address), SOCK_DGRAM,
     0);
   GST_INFO_OBJECT (elem, "SRT Socket made");
@@ -145,16 +153,19 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
     goto failed;
   }
 
-  int events = sender ? SRT_EPOLL_IN | SRT_EPOLL_OUT | SRT_EPOLL_ERR
-    : SRT_EPOLL_IN | SRT_EPOLL_ERR;
-  srt_epoll_add_usock (*poll_id, sock, &events);
-  GST_INFO_OBJECT (elem, "SRT Epoll Has Usock Added");
-
-  if (srt_connect (sock, sa, (int)sa_len) == SRT_ERROR) {
+  int connectRet = srt_connect (sock, sa, (int)sa_len);
+  //if (srt_connect (sock, sa, (int)sa_len) == SRT_ERROR) {
+  if (connectRet == SRT_ERROR) {
     GST_ELEMENT_ERROR (elem, RESOURCE, OPEN_READ, ("Connection error"),
       ("failed to connect to host (reason: %s)", srt_getlasterror_str ()));
     goto failed;
   }
+  GST_INFO_OBJECT (elem, "SRT Returned %i", connectRet);
+
+  int events = sender ? SRT_EPOLL_IN | SRT_EPOLL_OUT | SRT_EPOLL_ERR
+    : SRT_EPOLL_IN | SRT_EPOLL_ERR;
+  int addUsockRet = srt_epoll_add_usock (*poll_id, sock, &events);
+  GST_INFO_OBJECT (elem, "SRT Epoll Has Usock Added. Returned: %i", addUsockRet );
 
   return sock;
 
