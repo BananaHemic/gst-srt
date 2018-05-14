@@ -162,7 +162,7 @@ gst_srt_client_sink_start (GstBaseSink * sink)
   GstUri *uri = gst_uri_ref (GST_SRT_BASE_SINK (self)->uri);
 
   GST_DEBUG_OBJECT (self, "Will start SRT client sink");
-  priv->sock = gst_srt_client_connect_full (GST_ELEMENT (sink), FALSE,
+  priv->sock = gst_srt_client_connect_full (GST_ELEMENT (sink), TRUE,
     gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendez_vous,
     priv->bind_address, priv->bind_port, base->latency,
     &priv->sockaddr, &priv->poll_id, base->passphrase, base->key_length);
@@ -185,6 +185,8 @@ send_buffer_internal (GstSRTBaseSink * sink,
       ("%s", srt_getlasterror_str ()));
     return FALSE;
   }
+  GST_DEBUG_OBJECT (sink, "Sent %i bytes", mapinfo->size);
+
 
   return TRUE;
 }
@@ -197,6 +199,7 @@ gst_srt_client_sink_send_buffer (GstSRTBaseSink * sink,
   GstSRTClientSinkPrivate *priv = GST_SRT_CLIENT_SINK_GET_PRIVATE (self);
 
   if (!priv->sent_headers) {
+    GST_DEBUG_OBJECT (self, "Sending headers");
     if (!gst_srt_base_sink_send_headers (sink, send_buffer_internal,
       GINT_TO_POINTER (priv->sock)))
       return FALSE;

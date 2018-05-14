@@ -183,8 +183,10 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   SRTSOCKET ready[2];
   gint recv_len;
 
-  if (srt_epoll_wait (priv->poll_id, 0, 0, ready, &(int) {
-    2}, priv->poll_timeout, 0, 0, 0, 0) == -1) {
+  if (srt_epoll_wait (priv->poll_id,
+    &ready[0], &(int) {2}, 0, 0,
+    priv->poll_timeout,
+    0, 0, 0, 0) == -1) {
 
     /* Assuming that timeout error is normal */
     if (srt_getlasterror (NULL) != SRT_ETIMEOUT) {
@@ -206,10 +208,10 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     goto out;
   }
 
-  //GST_DEBUG("Will recv");
+  GST_LOG_OBJECT(self, "Will recv");
   recv_len = srt_recvmsg (priv->sock, (char *)info.data,
     (int)gst_buffer_get_size (outbuf));
-  //GST_DEBUG("recieved");
+  GST_LOG_OBJECT(self, "recieved");
 
   gst_buffer_unmap (outbuf, &info);
 
@@ -252,12 +254,12 @@ gst_srt_client_src_start (GstBaseSrc * src)
   GstUri *uri = gst_uri_ref (base->uri);
   GSocketAddress *socket_address = NULL;
 
-  GST_DEBUG_OBJECT (self, "Will start SRT client src");
+  GST_INFO_OBJECT (self, "Will start SRT client src");
   priv->sock = gst_srt_client_connect_full (GST_ELEMENT (src), FALSE,
     gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendez_vous,
     priv->bind_address, priv->bind_port, base->latency,
     &socket_address, &priv->poll_id, base->passphrase, base->key_length);
-  GST_DEBUG_OBJECT (self, "SRT client src connected");
+  GST_INFO_OBJECT (self, "SRT client src connected");
 
   g_clear_object (&socket_address);
   g_clear_pointer (&uri, gst_uri_unref);
@@ -287,7 +289,7 @@ gst_srt_client_src_unlock (GstBaseSrc * src)
 {
   GstSRTClientSrc *self = GST_SRT_CLIENT_SRC (src);
   GstSRTClientSrcPrivate *priv = GST_SRT_CLIENT_SRC_GET_PRIVATE (self);
-  GST_DEBUG_OBJECT (self, "unlocking client SRT connection");
+  GST_INFO_OBJECT (self, "unlocking client SRT connection");
   if (priv->poll_id != SRT_ERROR) {
     if (priv->sock != SRT_INVALID_SOCK)
       srt_epoll_remove_usock (priv->poll_id, priv->sock);
@@ -295,7 +297,7 @@ gst_srt_client_src_unlock (GstBaseSrc * src)
   }
   priv->poll_id = SRT_ERROR;
 
-  GST_DEBUG_OBJECT (self, "closing SRT connection");
+  GST_INFO_OBJECT (self, "closing SRT connection");
   if (priv->sock != SRT_INVALID_SOCK)
     srt_close (priv->sock);
   priv->sock = SRT_INVALID_SOCK;

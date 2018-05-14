@@ -70,6 +70,7 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
 
   sock = srt_socket (g_socket_address_get_family (*socket_address), SOCK_DGRAM,
     0);
+  GST_INFO_OBJECT (elem, "SRT Socket made");
   if (sock == SRT_ERROR) {
     GST_ELEMENT_ERROR (elem, LIBRARY, INIT, (NULL),
       ("failed to create SRT socket (reason: %s)", srt_getlasterror_str ()));
@@ -84,7 +85,7 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   srt_setsockopt (sock, 0, SRTO_LINGER, &(int) {
     0}, sizeof (int));
 
-  /* If this is a sink, we're a receiver, otherwise we're a sender */
+  /* If this is a sink, we're a sender, otherwise we're a receiver */
   srt_setsockopt (sock, 0, SRTO_SENDER, &sender, sizeof (int));
 
   srt_setsockopt (sock, 0, SRTO_TSBPDDELAY, &latency, sizeof (int));
@@ -136,6 +137,7 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   }
 
   *poll_id = srt_epoll_create ();
+  GST_INFO_OBJECT (elem, "SRT Epoll Created");
   if (*poll_id == -1) {
     GST_ELEMENT_ERROR (elem, LIBRARY, INIT, (NULL),
       ("failed to create poll id for SRT socket (reason: %s)",
@@ -143,8 +145,10 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
     goto failed;
   }
 
-  srt_epoll_add_usock (*poll_id, sock, &(int) {
-    SRT_EPOLL_OUT});
+  int events = sender ? SRT_EPOLL_IN | SRT_EPOLL_OUT | SRT_EPOLL_ERR
+    : SRT_EPOLL_IN | SRT_EPOLL_ERR;
+  srt_epoll_add_usock (*poll_id, sock, &events);
+  GST_INFO_OBJECT (elem, "SRT Epoll Has Usock Added");
 
   if (srt_connect (sock, sa, (int)sa_len) == SRT_ERROR) {
     GST_ELEMENT_ERROR (elem, RESOURCE, OPEN_READ, ("Connection error"),
@@ -185,6 +189,9 @@ gst_srt_client_connect (GstElement * elem, int sender,
 static gboolean
 plugin_init (GstPlugin * plugin)
 {
+  GST_DEBUG_CATEGORY_INIT (GST_CAT_DEFAULT, "srt", 0,
+    "SRT");
+
   if (!gst_element_register (plugin, "srtclientsrc", GST_RANK_PRIMARY,
     GST_TYPE_SRT_CLIENT_SRC))
     return FALSE;
