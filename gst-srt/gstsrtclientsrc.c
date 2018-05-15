@@ -180,11 +180,12 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   GstSRTClientSrcPrivate *priv = GST_SRT_CLIENT_SRC_GET_PRIVATE (self);
   GstFlowReturn ret = GST_FLOW_OK;
   GstMapInfo info;
-  SRTSOCKET ready[2];
+  int numSockets = 1;
+  SRTSOCKET readySocket;
   gint recv_len;
 
   if (srt_epoll_wait (priv->poll_id,
-    &ready[0], &(int) {2}, 0, 0,
+    &readySocket, &numSockets, 0, 0,
     priv->poll_timeout,
     0, 0, 0, 0) == -1) {
 
