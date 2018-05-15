@@ -76,8 +76,8 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   else if(address_family == AF_UNIX)
       GST_WARNING_OBJECT (elem, "Using Unix socket with SRT, this is not fully supported");
 
-  sock = srt_socket (g_socket_address_get_family (*socket_address), SOCK_DGRAM,
-    0);
+  // The SOCK_DGRAM and 0 are legacy from UDT and are not used
+  sock = srt_socket (address_family, SOCK_DGRAM, 0);
   GST_INFO_OBJECT (elem, "SRT Socket made");
   if (sock == SRT_ERROR) {
     GST_ELEMENT_ERROR (elem, LIBRARY, INIT, (NULL),
@@ -96,7 +96,12 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   /* If this is a sink, we're a sender, otherwise we're a receiver */
   srt_setsockopt (sock, 0, SRTO_SENDER, &sender, sizeof (int));
 
-  srt_setsockopt (sock, 0, SRTO_TSBPDDELAY, &latency, sizeof (int));
+  // If we're a sender, latency is the minimum latency for the receiver
+  // If we're a receiver, it's our latency
+  if(sender)
+      srt_setsockopt (sock, 0, SRTO_PEERLATENCY, &latency, sizeof (int));
+  else
+      srt_setsockopt (sock, 0, SRTO_RCVLATENCY, &latency, sizeof (int));
 
   srt_setsockopt (sock, 0, SRTO_RENDEZVOUS, &rendez_vous, sizeof (int));
 
@@ -154,7 +159,6 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   }
 
   int connectRet = srt_connect (sock, sa, (int)sa_len);
-  //if (srt_connect (sock, sa, (int)sa_len) == SRT_ERROR) {
   if (connectRet == SRT_ERROR) {
     GST_ELEMENT_ERROR (elem, RESOURCE, OPEN_READ, ("Connection error"),
       ("failed to connect to host (reason: %s)", srt_getlasterror_str ()));
