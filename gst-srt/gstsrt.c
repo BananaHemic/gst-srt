@@ -35,7 +35,7 @@ GST_DEBUG_CATEGORY (GST_CAT_DEFAULT);
 
 SRTSOCKET
 gst_srt_client_connect_full (GstElement * elem, int sender,
-  const gchar * host, guint16 port, int rendez_vous,
+  const gchar * host, guint16 port, int rendezvous,
   const gchar * bind_address, guint16 bind_port, int latency,
   GSocketAddress ** socket_address, gint * poll_id, gchar * passphrase,
   int key_length)
@@ -103,22 +103,23 @@ gst_srt_client_connect_full (GstElement * elem, int sender,
   else
       srt_setsockopt (sock, 0, SRTO_RCVLATENCY, &latency, sizeof (int));
 
-  srt_setsockopt (sock, 0, SRTO_RENDEZVOUS, &rendez_vous, sizeof (int));
+  srt_setsockopt (sock, 0, SRTO_RENDEZVOUS, &rendezvous, sizeof (int));
 
   if (passphrase != NULL && passphrase[0] != '\0') {
     srt_setsockopt (sock, 0, SRTO_PASSPHRASE, passphrase, (int)strlen (passphrase));
     srt_setsockopt (sock, 0, SRTO_PBKEYLEN, &key_length, sizeof (int));
   }
 
-  if (bind_address || bind_port || rendez_vous) {
+  if (bind_address || bind_port || rendezvous) {
     gpointer bsa;
     size_t bsa_len;
     GSocketAddress *b_socket_address = NULL;
+    GST_INFO_OBJECT (elem, "Setting up for rendezvous");
 
     if (bind_address == NULL)
       bind_address = "0.0.0.0";
 
-    if (rendez_vous)
+    if (rendezvous)
       bind_port = port;
 
     b_socket_address = g_inet_socket_address_new_from_string (bind_address,

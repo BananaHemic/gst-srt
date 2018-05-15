@@ -265,7 +265,9 @@ gst_srt_base_src_init (GstSRTBaseSrc * self)
   gst_base_src_set_format (GST_BASE_SRC (self), GST_FORMAT_TIME);
   gst_base_src_set_live (GST_BASE_SRC (self), TRUE);
   self->latency = SRT_DEFAULT_LATENCY;
+  self->passphrase = NULL;
   self->key_length = SRT_DEFAULT_KEY_LENGTH;
+  self->caps = NULL;
 }
 
 static GstURIType

@@ -63,7 +63,7 @@ struct _GstSRTClientSrcPrivate
   gint poll_id;
   gint poll_timeout;
 
-  gboolean rendez_vous;
+  gboolean rendezvous;
   gchar *bind_address;
   guint16 bind_port;
 };
@@ -106,7 +106,7 @@ gst_srt_client_src_get_property (GObject * object,
     g_value_set_int (value, priv->poll_timeout);
     break;
   case PROP_BIND_PORT:
-    g_value_set_int (value, priv->rendez_vous);
+    g_value_set_int (value, priv->rendezvous);
     break;
   case PROP_BIND_ADDRESS:
     g_value_set_string (value, priv->bind_address);
@@ -144,12 +144,11 @@ gst_srt_client_src_set_property (GObject * object,
     priv->bind_port = g_value_get_int (value);
     break;
   case PROP_RENDEZ_VOUS:
-    priv->rendez_vous = g_value_get_boolean (value);
+    priv->rendezvous = g_value_get_boolean (value);
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     break;
-
   }
 }
 
@@ -181,7 +180,7 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   GstFlowReturn ret = GST_FLOW_OK;
   GstMapInfo info;
   int numSockets = 1;
-  SRTSOCKET readySocket;
+  SRTSOCKET readySocket = 0;
   gint recv_len;
 
   if (srt_epoll_wait (priv->poll_id,
@@ -257,7 +256,7 @@ gst_srt_client_src_start (GstBaseSrc * src)
 
   GST_INFO_OBJECT (self, "Will start SRT client src");
   priv->sock = gst_srt_client_connect_full (GST_ELEMENT (src), FALSE,
-    gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendez_vous,
+    gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendezvous,
     priv->bind_address, priv->bind_port, base->latency,
     &socket_address, &priv->poll_id, base->passphrase, base->key_length);
   GST_INFO_OBJECT (self, "SRT client src connected");
@@ -372,7 +371,7 @@ gst_srt_client_src_init (GstSRTClientSrc * self)
   priv->sock = SRT_INVALID_SOCK;
   priv->poll_id = SRT_ERROR;
   priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
-  priv->rendez_vous = FALSE;
+  priv->rendezvous = FALSE;
   priv->bind_address = NULL;
   priv->bind_port = 0;
 }
