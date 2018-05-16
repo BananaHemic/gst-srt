@@ -58,7 +58,6 @@ GST_DEBUG_CATEGORY (GST_CAT_DEFAULT);
 
 struct _GstSRTServerSinkPrivate
 {
-  //GMutex mutex;
   gboolean cancelled;
 
   SRTSOCKET sock;
@@ -71,6 +70,7 @@ struct _GstSRTServerSinkPrivate
   GThread *thread;
 
   GList *clients;
+  GAsyncQueue *new_clients;
 };
 
 #define GST_SRT_SERVER_SINK_GET_PRIVATE(obj)  \
@@ -108,7 +108,6 @@ typedef struct
 {
   int sock;
   GSocketAddress *sockaddr;
-  gboolean sent_headers;
 } SRTClient;
 
 static SRTClient *
@@ -124,7 +123,6 @@ static void
 srt_client_free (SRTClient * client)
 {
   g_return_if_fail (client != NULL);
-
   g_clear_object (&client->sockaddr);
 
   if (client->sock != SRT_INVALID_SOCK) {
@@ -197,31 +195,25 @@ gst_srt_server_sink_set_property (GObject * object,
   }
 }
 
-//static void
-//gst_srt_server_sink_finalize (GObject * object)
-//{
-//  GstSRTServerSink *self = GST_SRT_SERVER_SINK (object);
-//  GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE (self);
-//
-//  g_mutex_clear (&priv->mutex);
-//
-//  G_OBJECT_CLASS (parent_class)->finalize (object);
-//}
-
 static gboolean
 idle_listen_callback (gpointer data)
 {
   GstSRTServerSink *self = GST_SRT_SERVER_SINK (data);
   GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE (self);
   gboolean ret = TRUE;
+  g_async_queue_ref(priv->new_clients);
 
   SRTClient *client;
-  SRTSOCKET ready[2];//TODO why is this 2? (stransmit also has it as 2)
+  int numReadySockets = 1;
+  SRTSOCKET readySocket;
   struct sockaddr sa;
   int sa_len;
 
-  if (srt_epoll_wait (priv->poll_id, ready, &(int) {
-    2}, 0, 0, priv->poll_timeout, 0, 0, 0, 0) == -1) {
+  // Wait until we can write
+  if (srt_epoll_wait (priv->poll_id,
+              0, 0, &readySocket, &numReadySockets,
+              priv->poll_timeout,
+              0, 0, 0, 0) == -1) {
     int srt_errno = srt_getlasterror (NULL);
 
     if (srt_errno != SRT_ETIMEOUT) {
@@ -229,7 +221,6 @@ idle_listen_callback (gpointer data)
         ("SRT error: %s", srt_getlasterror_str ()), (NULL));
       ret = FALSE;
       goto out;
-
     }
 
     /* Mimicking cancellable */
@@ -254,17 +245,15 @@ idle_listen_callback (gpointer data)
 
   client->sockaddr = g_socket_address_new_from_native (&sa, sa_len);
 
+  GST_INFO_OBJECT(self, "Added client");
   g_signal_emit (self, signals[SIG_CLIENT_ADDED], 0, client->sock,
     client->sockaddr);
 
-  //g_mutex_lock (&priv->mutex);
-  GST_OBJECT_LOCK (self);
-  priv->clients = g_list_append (priv->clients, client);
-  //g_mutex_unlock (&priv->mutex);
-  GST_OBJECT_UNLOCK (self);
+  g_async_queue_push(priv->new_clients, client);
   GST_DEBUG_OBJECT (self, "client added");
 
 out:
+  g_async_queue_unref(priv->new_clients);
   return ret;
 }
 
@@ -331,21 +320,19 @@ gst_srt_server_sink_start (GstBaseSink * sink)
     goto failed;
   }
 
+  int on = 1;
+  int off = 0;
   /* Make SRT blocking */
-  srt_setsockopt (priv->sock, 0, SRTO_SNDSYN, &(int) {
-    1}, sizeof (int));
+  srt_setsockopt (priv->sock, 0, SRTO_SNDSYN, &on, sizeof (int));
 
   /* Make sure TSBPD mode is enable (SRT mode) */
-  srt_setsockopt (priv->sock, 0, SRTO_TSBPDMODE, &(int) {
-    1}, sizeof (int));
+  srt_setsockopt (priv->sock, 0, SRTO_TSBPDMODE, &on, sizeof (int));
 
   /* srt recommends disabling linger */
-  srt_setsockopt (priv->sock, 0, SRTO_LINGER, &(int) {
-    0}, sizeof (int));
+  srt_setsockopt (priv->sock, 0, SRTO_LINGER, &off, sizeof (int));
 
   /* This is a sink, we're always a sender */
-  srt_setsockopt (priv->sock, 0, SRTO_SENDER, &(int) {
-    1}, sizeof (int));
+  srt_setsockopt (priv->sock, 0, SRTO_SENDER, &on, sizeof (int));
 
   srt_setsockopt (priv->sock, 0, SRTO_TSBPDDELAY, &lat, sizeof (int));
 
@@ -356,17 +343,16 @@ gst_srt_server_sink_start (GstBaseSink * sink)
       srt_getlasterror_str ());
     goto failed;
   }
-  srt_epoll_add_usock (priv->poll_id, priv->sock, &(int) {
-    SRT_EPOLL_IN});
+  int events = SRT_EPOLL_IN | SRT_EPOLL_OUT | SRT_EPOLL_ERR;
+  srt_epoll_add_usock (priv->poll_id, priv->sock, &events);
 
   if (srt_bind (priv->sock, &sa, (int)sa_len) == SRT_ERROR) {
     GST_WARNING_OBJECT (self, "failed to bind SRT server socket (reason: %s)",
       srt_getlasterror_str ());
     goto failed;
-
   }
 
-  if (srt_listen (priv->sock, 1) == SRT_ERROR) {
+  if (srt_listen (priv->sock, 5) == SRT_ERROR) {
     GST_WARNING_OBJECT (self, "failed to listen SRT socket (reason: %s)",
       srt_getlasterror_str ());
     goto failed;
@@ -382,16 +368,12 @@ gst_srt_server_sink_start (GstBaseSink * sink)
   g_source_attach (priv->server_source, priv->context);
   priv->loop = g_main_loop_new (priv->context, TRUE);
 
-  //g_mutex_lock (&priv->mutex);
-
   priv->thread = g_thread_try_new ("srtserversink", thread_func, self, &error);
   if (error != NULL) {
     GST_WARNING_OBJECT (self, "failed to create thread (reason: %s)",
       error->message);
     ret = FALSE;
   }
-
-  //g_mutex_unlock (&priv->mutex);
 
   g_clear_pointer (&uri, gst_uri_unref);
   g_clear_object (&socket_address);
@@ -416,7 +398,7 @@ failed:
   return FALSE;
 }
 
-static gboolean
+static gboolean inline
 send_buffer_internal (GstSRTBaseSink * sink,
   const GstMapInfo * mapinfo, gpointer user_data)
 {
@@ -432,40 +414,48 @@ send_buffer_internal (GstSRTBaseSink * sink,
   return TRUE;
 }
 
-static gboolean
+static gboolean inline
 gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
   const GstMapInfo * mapinfo)
 {
   GstSRTServerSink *self = GST_SRT_SERVER_SINK (sink);
   GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE (self);
+  GST_OBJECT_LOCK (sink);
   GList *clients = priv->clients;
 
   while (clients != NULL) {
-    //g_mutex_lock (&priv->mutex);
-    GST_OBJECT_LOCK (sink);
     SRTClient *client = clients->data;
     clients = clients->next;
 
-    if (!client->sent_headers) {
-      if (!gst_srt_base_sink_send_headers (sink, send_buffer_internal, client))
-        goto err;
-
-      client->sent_headers = TRUE;
+    if (!send_buffer_internal (sink, mapinfo, client)){
+      priv->clients = g_list_remove (priv->clients, client);
+      g_signal_emit (self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
+        client->sockaddr);
+      srt_client_free (client);
     }
+  }
+
+  // Process new clients
+  SRTClient *client = (SRTClient*)g_async_queue_try_pop(priv->new_clients);
+
+  while(client != NULL){
+    if (!gst_srt_base_sink_send_headers (sink, send_buffer_internal, client))
+      goto err;
+    GST_INFO_OBJECT(self, "Sent client headers");
 
     if (!send_buffer_internal (sink, mapinfo, client))
       goto err;
-
-    GST_OBJECT_UNLOCK (sink);
+    priv->clients = g_list_prepend(priv->clients, client);
+    client = (SRTClient*)g_async_queue_try_pop(priv->new_clients);
     continue;
 
-  err:
-    priv->clients = g_list_remove (priv->clients, client);
-    GST_OBJECT_UNLOCK (sink);
-    g_signal_emit (self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
-      client->sockaddr);
-    srt_client_free (client);
+    err:
+      g_signal_emit (self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
+        client->sockaddr);
+      srt_client_free (client);
+      client = (SRTClient*)g_async_queue_try_pop(priv->new_clients);
   }
+  GST_OBJECT_UNLOCK (sink);
 
   return TRUE;
 }
@@ -477,11 +467,10 @@ gst_srt_server_sink_stop (GstBaseSink * sink)
   GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE (self);
 
   GST_DEBUG_OBJECT (self, "closing client sockets");
-  //g_mutex_lock (&priv->mutex);
   GST_OBJECT_LOCK (sink);
   g_list_foreach (priv->clients, (GFunc)srt_emit_client_removed, self);
   g_list_free_full (priv->clients, (GDestroyNotify)srt_client_free);
-  //g_mutex_unlock (&priv->mutex);
+  g_async_queue_unref(priv->new_clients);
   GST_OBJECT_UNLOCK (sink);
 
   GST_DEBUG_OBJECT (self, "closing SRT connection");
@@ -609,4 +598,5 @@ gst_srt_server_sink_init (GstSRTServerSink * self)
   GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE (self);
   priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
   //g_mutex_init (&priv->mutex);
+  priv->new_clients = g_async_queue_new_full((GDestroyNotify)srt_client_free);
 }

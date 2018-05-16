@@ -185,7 +185,7 @@ send_buffer_internal (GstSRTBaseSink * sink,
       ("%s", srt_getlasterror_str ()));
     return FALSE;
   }
-  GST_DEBUG_OBJECT (sink, "Sent %i bytes", mapinfo->size);
+  GST_DEBUG_OBJECT (sink, "Sent %i bytes", (int)mapinfo->size);
 
 
   return TRUE;

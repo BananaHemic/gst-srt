@@ -144,12 +144,10 @@ gst_srt_base_src_get_stats (SRTSOCKET sock)
 {
   SRT_TRACEBSTATS stats;
   int ret;
-  GstStructure *s;
+  GstStructure *s = gst_structure_new_empty ("application/x-srt-statistics");
 
   if (sock == SRT_INVALID_SOCK)
-    return gst_structure_new_empty ("application/x-srt-statistics");
-
-  s = gst_structure_new ("application/x-srt-statistics", NULL);
+    return s;
 
   ret = srt_bstats (sock, &stats, 0);
   if (ret >= 0) {
