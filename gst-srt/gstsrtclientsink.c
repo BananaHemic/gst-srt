@@ -63,7 +63,7 @@ struct _GstSRTClientSinkPrivate
   gint poll_id;
   gint poll_timeout;
 
-  gboolean rendez_vous;
+  gboolean rendezvous;
   gchar *bind_address;
   guint16 bind_port;
 
@@ -106,7 +106,7 @@ gst_srt_client_sink_get_property (GObject * object,
     g_value_set_int (value, priv->poll_timeout);
     break;
   case PROP_BIND_PORT:
-    g_value_set_int (value, priv->rendez_vous);
+    g_value_set_int (value, priv->rendezvous);
     break;
   case PROP_BIND_ADDRESS:
     g_value_set_string (value, priv->bind_address);
@@ -145,7 +145,7 @@ gst_srt_client_sink_set_property (GObject * object,
     priv->bind_port = g_value_get_int (value);
     break;
   case PROP_RENDEZ_VOUS:
-    priv->rendez_vous = g_value_get_boolean (value);
+    priv->rendezvous = g_value_get_boolean (value);
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -163,7 +163,7 @@ gst_srt_client_sink_start (GstBaseSink * sink)
 
   GST_DEBUG_OBJECT (self, "Will start SRT client sink");
   priv->sock = gst_srt_client_connect_full (GST_ELEMENT (sink), TRUE,
-    gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendez_vous,
+    gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendezvous,
     priv->bind_address, priv->bind_port, base->latency,
     &priv->sockaddr, &priv->poll_id, base->passphrase, base->key_length);
 

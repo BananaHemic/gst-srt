@@ -174,6 +174,12 @@ gst_srt_client_connect_full (GstElement * elem, gboolean is_sender,
   }
   GST_INFO_OBJECT (elem, "SRT connect returned %i", connectRet);
 
+  SRT_SOCKSTATUS status = srt_getsockstate (sock);
+  if (status != SRTS_CONNECTED) {
+      GST_ERROR_OBJECT (elem, "Socket not connected! err: %s", srt_getlasterror_str ());
+      goto failed;
+  }
+
   int events = is_sender ? SRT_EPOLL_IN | SRT_EPOLL_OUT | SRT_EPOLL_ERR
     : SRT_EPOLL_IN | SRT_EPOLL_ERR;
   int addUsockRet = srt_epoll_add_usock (*poll_id, sock, &events);

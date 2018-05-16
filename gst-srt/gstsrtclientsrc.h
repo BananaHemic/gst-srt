@@ -27,7 +27,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #else
-#include <WinSock2.h>
 #endif
 
 G_BEGIN_DECLS

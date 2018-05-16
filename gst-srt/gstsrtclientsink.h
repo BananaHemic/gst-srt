@@ -26,7 +26,6 @@
 #ifndef _WIN32
 #include <sys/socket.h>
 #else
-#include <WinSock2.h>
 #endif
 
 G_BEGIN_DECLS

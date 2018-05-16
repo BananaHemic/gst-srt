@@ -135,6 +135,8 @@ gst_srt_base_src_finalize (GObject * object)
   g_clear_pointer (&self->caps, gst_caps_unref);
   g_clear_pointer (&self->passphrase, g_free);
 
+  srt_cleanup ();
+  GST_INFO_OBJECT (self, "SRT cleanup");
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 GstStructure *
@@ -268,6 +270,8 @@ gst_srt_base_src_init (GstSRTBaseSrc * self)
   self->passphrase = NULL;
   self->key_length = SRT_DEFAULT_KEY_LENGTH;
   self->caps = NULL;
+  srt_startup ();
+  GST_INFO_OBJECT (self, "SRT startup");
 }
 
 static GstURIType

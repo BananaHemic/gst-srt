@@ -130,6 +130,8 @@ gst_srt_base_sink_finalize (GObject * object)
   g_clear_pointer (&self->uri, gst_uri_unref);
   g_clear_pointer (&self->passphrase, g_free);
 
+  srt_cleanup ();
+  GST_INFO_OBJECT (self, "SRT cleanup");
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 
@@ -283,6 +285,8 @@ gst_srt_base_sink_init (GstSRTBaseSink * self)
   self->latency = SRT_DEFAULT_LATENCY;
   self->passphrase = NULL;
   self->key_length = SRT_DEFAULT_KEY_LENGTH;
+  srt_startup ();
+  GST_INFO_OBJECT (self, "SRT startup");
 }
 
 static GstURIType
