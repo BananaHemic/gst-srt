@@ -67,7 +67,7 @@ struct _GstSRTServerSinkPrivate
   GThread *thread;
 
   GList *clients;
-  GAsyncQueue *new_clients;
+  GAsyncQueue *pending_clients;
 };
 
 #define GST_SRT_SERVER_SINK_GET_PRIVATE(obj)  \
@@ -242,7 +242,7 @@ thread_func (gpointer data)
     g_signal_emit (self, signals[SIG_CLIENT_ADDED], 0, client->sock,
       client->sockaddr);
 
-    g_async_queue_push(priv->new_clients, client);
+    g_async_queue_push(priv->pending_clients, client);
     GST_DEBUG_OBJECT (self, "client added");
   }
   GST_INFO_OBJECT(self, "New client polling thread safe exit");
@@ -302,8 +302,12 @@ gst_srt_server_sink_start (GstBaseSink * sink)
 
   int on = 1;
   int off = 0;
-  /* Make SRT blocking */
-  srt_setsockopt (priv->sock, 0, SRTO_SNDSYN, &on, sizeof (int));
+  /* Make SRT non blocking */
+  srt_setsockopt (priv->sock, 0, SRTO_SNDSYN, &off, sizeof (int));
+
+  /* Use the larger recommended send buffer */
+  int send_buff_bytes = 1024 * 1024;
+  srt_setsockopt(priv->sock, 0, SRTO_UDP_SNDBUF, &send_buff_bytes, sizeof (int));
 
   /* Make sure TSBPD mode is enable (SRT mode) */
   srt_setsockopt (priv->sock, 0, SRTO_TSBPDMODE, &on, sizeof (int));
@@ -314,7 +318,9 @@ gst_srt_server_sink_start (GstBaseSink * sink)
   /* This is a sink, we're always a sender */
   srt_setsockopt (priv->sock, 0, SRTO_SENDER, &on, sizeof (int));
 
-  srt_setsockopt (priv->sock, 0, SRTO_TSBPDDELAY, &lat, sizeof (int));
+  /* Set the minimum latency we'll allow the receiver to use*/
+  srt_setsockopt (priv->sock, 0, SRTO_PEERLATENCY, &lat, sizeof (int));
+  /*srt_setsockopt (priv->sock, 0, SRTO_TSBPDDELAY, &lat, sizeof (int));*/
 
   priv->poll_id = srt_epoll_create ();
   if (priv->poll_id == -1) {
@@ -412,7 +418,7 @@ gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
   }
 
   // Process new clients
-  SRTClient *client = (SRTClient*)g_async_queue_try_pop(priv->new_clients);
+  SRTClient *client = (SRTClient*)g_async_queue_try_pop(priv->pending_clients);
 
   while(client != NULL){
     if (!gst_srt_base_sink_send_headers (sink, send_buffer_internal, client))
@@ -421,15 +427,16 @@ gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
 
     if (!send_buffer_internal (sink, mapinfo, client))
       goto err;
+    /* GList recommends prepending to lists for performance */
     priv->clients = g_list_prepend(priv->clients, client);
-    client = (SRTClient*)g_async_queue_try_pop(priv->new_clients);
+    client = (SRTClient*)g_async_queue_try_pop(priv->pending_clients);
     continue;
 
     err:
       g_signal_emit (self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
         client->sockaddr);
       srt_client_free (client);
-      client = (SRTClient*)g_async_queue_try_pop(priv->new_clients);
+      client = (SRTClient*)g_async_queue_try_pop(priv->pending_clients);
   }
   GST_OBJECT_UNLOCK (sink);
 
@@ -458,7 +465,15 @@ gst_srt_server_sink_stop (GstBaseSink * sink)
   GST_DEBUG_OBJECT (self, "closing client sockets");
   g_list_foreach (priv->clients, (GFunc)srt_emit_client_removed, self);
   g_list_free_full (priv->clients, (GDestroyNotify)srt_client_free);
-  g_async_queue_unref(priv->new_clients);
+  /* async queue doesn't have a foreach, so we have to manually iterate
+   * through it to remove all pending clients */
+  SRTClient *client = g_async_queue_try_pop(priv->pending_clients);
+  while (client != NULL){
+    srt_emit_client_removed(client, self);
+    srt_client_free(client);
+    client = g_async_queue_try_pop(priv->pending_clients);
+  }
+  g_async_queue_unref(priv->pending_clients);
   GST_OBJECT_UNLOCK (sink);
 
   return GST_BASE_SINK_CLASS (parent_class)->stop (sink);
@@ -496,7 +511,6 @@ gst_srt_server_sink_class_init (GstSRTServerSinkClass * klass)
 
   gobject_class->set_property = gst_srt_server_sink_set_property;
   gobject_class->get_property = gst_srt_server_sink_get_property;
-  //gobject_class->finalize = gst_srt_server_sink_finalize;
 
   properties[PROP_POLL_TIMEOUT] =
     g_param_spec_int ("poll-timeout", "Poll Timeout",
@@ -566,6 +580,5 @@ gst_srt_server_sink_init (GstSRTServerSink * self)
 {
   GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE (self);
   priv->poll_timeout = SRT_DEFAULT_POLL_TIMEOUT;
-  //g_mutex_init (&priv->mutex);
-  priv->new_clients = g_async_queue_new_full((GDestroyNotify)srt_client_free);
+  priv->pending_clients = g_async_queue_new();
 }
