@@ -112,6 +112,9 @@ gst_srt_base_src_set_property (GObject * object,
     g_free (self->passphrase);
     self->passphrase = g_value_dup_string (value);
     break;
+  case PROP_LATENCY:
+    self->latency = g_value_get_int (value);
+    break;
   case PROP_KEY_LENGTH:
   {
     gint key_length = g_value_get_int (value);
