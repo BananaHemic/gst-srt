@@ -321,6 +321,9 @@ gst_srt_server_sink_start (GstBaseSink * sink)
   /* srt recommends disabling linger */
   srt_setsockopt (priv->sock, 0, SRTO_LINGER, &off, sizeof (int));
 
+  /* srt recommends having a max BW of 0, so relative */
+  srt_setsockflag (priv->sock, SRTO_MAXBW, &off, sizeof (int));
+
   /* This is a sink, we're always a sender */
   srt_setsockopt (priv->sock, 0, SRTO_SENDER, &on, sizeof (int));
 
