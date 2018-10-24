@@ -95,6 +95,8 @@ G_DEFINE_TYPE_WITH_CODE (GstSRTClientSrc, gst_srt_client_src,
   GST_DEBUG_CATEGORY_INIT (GST_CAT_DEFAULT, "srtclientsrc", 0,
     "SRT Client Source"));
 
+void SRTLogHandler (void* opaque, int level, const char* file, int line, const char* area, const char* message);
+
 static void
 gst_srt_client_src_get_property (GObject * object,
   guint prop_id, GValue * value, GParamSpec * pspec)
@@ -278,6 +280,23 @@ gst_srt_client_src_start (GstBaseSrc * src)
   GSocketAddress *socket_address = NULL;
 
   GST_INFO_OBJECT (self, "Will start SRT client src");
+
+  // Enable for SRT logging, which is very noisy but informative
+  // Also know that this requires SRT compiled with logging and
+  // ideally, heavy logging
+#if 0
+  char NAME[] = "SRTLIB";
+  srt_setloglevel (7);
+  //srt_setloglevel (LOG_NOTICE);
+  srt_setlogflags (0
+      | SRT_LOGF_DISABLE_TIME
+      | SRT_LOGF_DISABLE_SEVERITY
+      | SRT_LOGF_DISABLE_THREADNAME
+      | SRT_LOGF_DISABLE_EOL
+  );
+  srt_setloghandler (NAME, SRTLogHandler);
+#endif
+
   priv->sock = gst_srt_client_connect_full (GST_ELEMENT (src), FALSE,
     gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendezvous,
     priv->bind_address, priv->bind_port, base->latency,
