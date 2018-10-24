@@ -62,6 +62,7 @@ struct _GstSRTClientSrcPrivate
   SRTSOCKET sock;
   gint poll_id;
   gint poll_timeout;
+  gint last_msg_num;
 
   gboolean rendezvous;
   gchar *bind_address;
@@ -182,13 +183,15 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   int numSockets = 1;
   SRTSOCKET readySocket = 0;
   gint recv_len;
+  SRT_MSGCTRL ctrl;
 
+  /*
   if (srt_epoll_wait (priv->poll_id,
     &readySocket, &numSockets, 0, 0,
     priv->poll_timeout,
     0, 0, 0, 0) == -1) {
 
-    /* Assuming that timeout error is normal */
+    / * Assuming that timeout error is normal * /
     if (srt_getlasterror (NULL) != SRT_ETIMEOUT) {
       GST_ELEMENT_ERROR (src, RESOURCE, READ,
         (NULL), ("srt_epoll_wait error: %s", srt_getlasterror_str ()));
@@ -200,6 +203,7 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     srt_clearlasterror ();
     goto out;
   }
+  */
 
   if (!gst_buffer_map (outbuf, &info, GST_MAP_WRITE)) {
     GST_ELEMENT_ERROR (src, RESOURCE, READ,
@@ -209,8 +213,18 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   }
 
   GST_LOG_OBJECT(self, "Will recv");
+#if 0
   recv_len = srt_recvmsg (priv->sock, (char *)info.data,
     (int)gst_buffer_get_size (outbuf));
+#else
+  recv_len = srt_recvmsg2 (priv->sock, (char*)info.data,
+      (int)gst_buffer_get_size (outbuf), &ctrl);
+
+  //if (recv_len != SRT_ERROR) {
+      //GST_LOG_OBJECT (self, "Recv msg #%d, seq#%d", ctrl.msgno, ctrl.pktseq);
+  //}
+
+#endif
   GST_LOG_OBJECT(self, "recieved");
 
   gst_buffer_unmap (outbuf, &info);
@@ -224,6 +238,15 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     GST_DEBUG_OBJECT (self, "SRT EOS");
     ret = GST_FLOW_EOS;
     goto out;
+  }
+  else if (recv_len != 1316) {
+      GST_WARNING ("Weird received size of %d", recv_len);
+  }
+
+  // Check if we've dropped some packets
+  if (priv->last_msg_num != 0
+      && (ctrl.pktseq - priv->last_msg_num) > 1) {
+      GST_WARNING_OBJECT (self, "Dropped %d. %d->%d", (ctrl.pktseq - priv->last_msg_num), priv->last_msg_num, ctrl.pktseq);
   }
 
   GST_BUFFER_PTS (outbuf) =
@@ -261,6 +284,7 @@ gst_srt_client_src_start (GstBaseSrc * src)
     &socket_address, &priv->poll_id, base->passphrase, base->key_length);
   GST_INFO_OBJECT (self, "SRT client src connected");
 
+  priv->last_msg_num = 0;
   g_clear_object (&socket_address);
   g_clear_pointer (&uri, gst_uri_unref);
 
