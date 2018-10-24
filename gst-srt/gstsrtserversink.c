@@ -308,6 +308,7 @@ gst_srt_server_sink_start (GstBaseSink * sink)
 
   int on = 1;
   int off = 0;
+  int64_t zero = 0;
   /* Make SRT non blocking */
   srt_setsockopt (priv->sock, 0, SRTO_SNDSYN, &off, sizeof (int));
 
@@ -322,7 +323,7 @@ gst_srt_server_sink_start (GstBaseSink * sink)
   srt_setsockopt (priv->sock, 0, SRTO_LINGER, &off, sizeof (int));
 
   /* srt recommends having a max BW of 0, so relative */
-  srt_setsockflag (priv->sock, SRTO_MAXBW, &off, sizeof (int));
+  srt_setsockflag (priv->sock, SRTO_MAXBW, &zero, sizeof (int64_t));
 
   /* This is a sink, we're always a sender */
   srt_setsockopt (priv->sock, 0, SRTO_SENDER, &on, sizeof (int));
