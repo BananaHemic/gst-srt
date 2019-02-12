@@ -96,6 +96,7 @@ gst_srt_client_connect_full (GstElement * elem, gboolean is_sender,
     goto failed;
   }
 
+
   int on = 1;
   int off = 0;
   /* Make sure TSBPD mode is enable (SRT mode) */

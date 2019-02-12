@@ -215,18 +215,8 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   }
 
   GST_LOG_OBJECT(self, "Will recv");
-#if 0
-  recv_len = srt_recvmsg (priv->sock, (char *)info.data,
-    (int)gst_buffer_get_size (outbuf));
-#else
   recv_len = srt_recvmsg2 (priv->sock, (char*)info.data,
       (int)gst_buffer_get_size (outbuf), &ctrl);
-
-  //if (recv_len != SRT_ERROR) {
-      //GST_LOG_OBJECT (self, "Recv msg #%d, seq#%d", ctrl.msgno, ctrl.pktseq);
-  //}
-
-#endif
   GST_LOG_OBJECT(self, "recieved");
 
   gst_buffer_unmap (outbuf, &info);
@@ -245,11 +235,13 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
       GST_WARNING ("Weird received size of %d", recv_len);
   }
 
+
   // Check if we've dropped some packets
   if (priv->last_msg_num != 0
-      && (ctrl.pktseq - priv->last_msg_num) > 1) {
-      GST_WARNING_OBJECT (self, "Dropped %d. %d->%d", (ctrl.pktseq - priv->last_msg_num), priv->last_msg_num, ctrl.pktseq);
+      && (ctrl.msgno - priv->last_msg_num) > 1) {
+      GST_WARNING_OBJECT (self, "Dropped %d. %d->%d", (ctrl.msgno - priv->last_msg_num - 1), priv->last_msg_num, ctrl.msgno);
   }
+  priv->last_msg_num = ctrl.msgno;
 
   GST_BUFFER_PTS (outbuf) =
     gst_clock_get_time (GST_ELEMENT_CLOCK (src)) -
