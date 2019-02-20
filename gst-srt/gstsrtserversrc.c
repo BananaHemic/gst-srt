@@ -65,6 +65,7 @@ struct _GstSRTServerSrcPrivate
   gint poll_id;
   gint poll_timeout;
   gint wait_timeout;
+  gint last_msg_num;
 
   gboolean has_client;
   gboolean cancelled;
@@ -242,8 +243,9 @@ gst_srt_server_src_fill (GstPushSrc * src, GstBuffer * outbuf)
 
   }
 
-  recv_len = srt_recvmsg (priv->client_sock, (char *)info.data,
-    (int)gst_buffer_get_size (outbuf));
+  SRT_MSGCTRL ctrl;
+  recv_len = srt_recvmsg2 (priv->client_sock, (char *)info.data,
+    (int)gst_buffer_get_size (outbuf), &ctrl);
 
   gst_buffer_unmap (outbuf, &info);
 
@@ -265,6 +267,12 @@ gst_srt_server_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     GST_WARNING_OBJECT (self, "Server received nothing, closing");
     ret = GST_FLOW_EOS;
     goto out;
+  }
+
+  if(priv->last_msg_num != 0
+	&& (ctrl.msgno - priv->last_msg_num) > 1) {
+	  GST_WARNING_OBJECT(self, "Dropped %d. %d->%d", (ctrl.msgno - priv->last_msg_num),
+			  priv->last_msg_num, ctrl.msgno);
   }
 
   GST_BUFFER_PTS (outbuf) =
