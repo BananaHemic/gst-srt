@@ -116,6 +116,13 @@ gst_srt_client_connect_full (GstElement * elem, gboolean is_sender,
   else
       srt_setsockopt (sock, 0, SRTO_RCVLATENCY, &latency, sizeof (int));
 
+  // If we're a sender, we set the IP_TOS to tell the network this is important
+  if (is_sender) {
+      //TODO not sure if this also sets the reliability bit
+      int tos = 0xB8;
+      srt_setsockopt (sock, 0, SRTO_IPTOS, &tos, sizeof (int));
+  }
+
   GST_INFO_OBJECT (elem, "Using as latency: %i", latency);
 
   int rendezvousInt = (int)rendezvous;
