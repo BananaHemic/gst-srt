@@ -68,6 +68,9 @@ struct _GstSRTClientSinkPrivate
   gchar *bind_address;
   guint16 bind_port;
 
+  gint prevSndDrop;
+  gint prevSndLoss;
+
   gboolean sent_headers;
 };
 
@@ -188,6 +191,23 @@ send_buffer_internal (GstSRTBaseSink * sink,
   }
   GST_DEBUG_OBJECT (sink, "Sent %i bytes", (int)mapinfo->size);
 
+  GstSRTClientSink *self = GST_SRT_CLIENT_SINK (sink);
+  GstSRTClientSinkPrivate *priv = GST_SRT_CLIENT_SINK_GET_PRIVATE (self);
+  SRT_TRACEBSTATS stats;
+  int ret = srt_bstats (sock, &stats, 0);
+  if (ret >= 0) {
+      int delSndDrop = stats.pktSndDrop - priv->prevSndDrop;
+      int delSndLoss = stats.pktSndLoss - priv->prevSndLoss;
+
+      //if (delSndDrop != 0 || delSndLoss != 0){
+      if (delSndDrop != 0){
+          GST_WARNING_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i recv:%i",
+              delSndDrop, delSndLoss, stats.pktSndDrop, stats.pktSndLoss, stats.pktSent);
+          priv->prevSndDrop = stats.pktSndDrop;
+          priv->prevSndLoss = stats.pktSndLoss;
+      }
+
+  }
 
   return TRUE;
 }
