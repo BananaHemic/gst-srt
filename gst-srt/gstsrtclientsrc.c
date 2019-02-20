@@ -62,6 +62,7 @@ struct _GstSRTClientSrcPrivate
   SRTSOCKET sock;
   gint poll_id;
   gint poll_timeout;
+  gint last_msg_num;
 
   gboolean rendezvous;
   gchar *bind_address;
@@ -93,6 +94,8 @@ G_DEFINE_TYPE_WITH_CODE (GstSRTClientSrc, gst_srt_client_src,
   GST_TYPE_SRT_BASE_SRC, G_ADD_PRIVATE (GstSRTClientSrc)
   GST_DEBUG_CATEGORY_INIT (GST_CAT_DEFAULT, "srtclientsrc", 0,
     "SRT Client Source"));
+
+void SRTLogHandler (void* opaque, int level, const char* file, int line, const char* area, const char* message);
 
 static void
 gst_srt_client_src_get_property (GObject * object,
@@ -182,13 +185,15 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   int numSockets = 1;
   SRTSOCKET readySocket = 0;
   gint recv_len;
+  SRT_MSGCTRL ctrl;
 
+  /*
   if (srt_epoll_wait (priv->poll_id,
     &readySocket, &numSockets, 0, 0,
     priv->poll_timeout,
     0, 0, 0, 0) == -1) {
 
-    /* Assuming that timeout error is normal */
+    / * Assuming that timeout error is normal * /
     if (srt_getlasterror (NULL) != SRT_ETIMEOUT) {
       GST_ELEMENT_ERROR (src, RESOURCE, READ,
         (NULL), ("srt_epoll_wait error: %s", srt_getlasterror_str ()));
@@ -200,6 +205,7 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     srt_clearlasterror ();
     goto out;
   }
+  */
 
   if (!gst_buffer_map (outbuf, &info, GST_MAP_WRITE)) {
     GST_ELEMENT_ERROR (src, RESOURCE, READ,
@@ -209,8 +215,8 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   }
 
   GST_LOG_OBJECT(self, "Will recv");
-  recv_len = srt_recvmsg (priv->sock, (char *)info.data,
-    (int)gst_buffer_get_size (outbuf));
+  recv_len = srt_recvmsg2 (priv->sock, (char*)info.data,
+      (int)gst_buffer_get_size (outbuf), &ctrl);
   GST_LOG_OBJECT(self, "recieved");
 
   gst_buffer_unmap (outbuf, &info);
@@ -225,6 +231,17 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     ret = GST_FLOW_EOS;
     goto out;
   }
+  else if (recv_len != 1316) {
+      GST_WARNING ("Weird received size of %d", recv_len);
+  }
+
+
+  // Check if we've dropped some packets
+  if (priv->last_msg_num != 0
+      && (ctrl.msgno - priv->last_msg_num) > 1) {
+      GST_WARNING_OBJECT (self, "Dropped %d. %d->%d", (ctrl.msgno - priv->last_msg_num - 1), priv->last_msg_num, ctrl.msgno);
+  }
+  priv->last_msg_num = ctrl.msgno;
 
   GST_BUFFER_PTS (outbuf) =
     gst_clock_get_time (GST_ELEMENT_CLOCK (src)) -
@@ -255,12 +272,30 @@ gst_srt_client_src_start (GstBaseSrc * src)
   GSocketAddress *socket_address = NULL;
 
   GST_INFO_OBJECT (self, "Will start SRT client src");
+
+  // Enable for SRT logging, which is very noisy but informative
+  // Also know that this requires SRT compiled with logging and
+  // ideally, heavy logging
+#if 0
+  char NAME[] = "SRTLIB";
+  srt_setloglevel (7);
+  //srt_setloglevel (LOG_NOTICE);
+  srt_setlogflags (0
+      | SRT_LOGF_DISABLE_TIME
+      | SRT_LOGF_DISABLE_SEVERITY
+      | SRT_LOGF_DISABLE_THREADNAME
+      | SRT_LOGF_DISABLE_EOL
+  );
+  srt_setloghandler (NAME, SRTLogHandler);
+#endif
+
   priv->sock = gst_srt_client_connect_full (GST_ELEMENT (src), FALSE,
     gst_uri_get_host (uri), gst_uri_get_port (uri), priv->rendezvous,
     priv->bind_address, priv->bind_port, base->latency,
     &socket_address, &priv->poll_id, base->passphrase, base->key_length);
   GST_INFO_OBJECT (self, "SRT client src connected");
 
+  priv->last_msg_num = 0;
   g_clear_object (&socket_address);
   g_clear_pointer (&uri, gst_uri_unref);
 

@@ -47,6 +47,10 @@
 #include <gio/gio.h>
 
 #define SRT_DEFAULT_POLL_TIMEOUT - 1
+// Recommended size of the send buffer, in bytes
+#define SRT_SEND_BUFFER_SIZE 1024 * 1024
+// How many times a send fails in a row before we disconnect a client
+#define MAX_SEND_FAILS 10
 
 static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
   GST_PAD_SINK,
@@ -105,6 +109,7 @@ typedef struct
 {
   int sock;
   GSocketAddress *sockaddr;
+  int num_send_fails;
 } SRTClient;
 
 static SRTClient *
@@ -112,6 +117,7 @@ srt_client_new (void)
 {
   SRTClient *client = g_new0 (SRTClient, 1);
   client->sock = SRT_INVALID_SOCK;
+  client->num_send_fails = 0;
   GST_DEBUG ("New SRT client");
   return client;
 }
@@ -302,11 +308,12 @@ gst_srt_server_sink_start (GstBaseSink * sink)
 
   int on = 1;
   int off = 0;
+  int64_t zero = 0;
   /* Make SRT non blocking */
   srt_setsockopt (priv->sock, 0, SRTO_SNDSYN, &off, sizeof (int));
 
   /* Use the larger recommended send buffer */
-  int send_buff_bytes = 1024 * 1024;
+  int send_buff_bytes = SRT_SEND_BUFFER_SIZE;
   srt_setsockopt(priv->sock, 0, SRTO_UDP_SNDBUF, &send_buff_bytes, sizeof (int));
 
   /* Make sure TSBPD mode is enable (SRT mode) */
@@ -314,6 +321,9 @@ gst_srt_server_sink_start (GstBaseSink * sink)
 
   /* srt recommends disabling linger */
   srt_setsockopt (priv->sock, 0, SRTO_LINGER, &off, sizeof (int));
+
+  /* srt recommends having a max BW of 0, so relative */
+  srt_setsockflag (priv->sock, SRTO_MAXBW, &zero, sizeof (int64_t));
 
   /* This is a sink, we're always a sender */
   srt_setsockopt (priv->sock, 0, SRTO_SENDER, &on, sizeof (int));
@@ -397,6 +407,18 @@ send_buffer_internal (GstSRTBaseSink * sink,
 }
 
 static gboolean inline
+can_client_recv (SRTSOCKET socket) {
+    int num_bytes_unacknowledged;
+    int num_bytes_len = sizeof (num_bytes_unacknowledged);
+    const int send_buffer_size = SRT_SEND_BUFFER_SIZE;
+    const int default_msg_size = 1316; // 1316 is for mpegts
+    // Get how many bytes are not yet acknowledged
+    srt_getsockflag (socket, SRTO_SNDDATA, &num_bytes_unacknowledged, &num_bytes_len);
+
+    return num_bytes_unacknowledged + default_msg_size < send_buffer_size;
+}
+
+static gboolean inline
 gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
   const GstMapInfo * mapinfo)
 {
@@ -406,8 +428,20 @@ gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
   GList *clients = priv->clients;
 
   while (clients != NULL) {
-    SRTClient *client = clients->data;
-    clients = clients->next;
+     SRTClient *client = clients->data;
+     clients = clients->next;
+
+     if (!can_client_recv (client->sock)) {
+       client->num_send_fails++;
+       if (client->num_send_fails >= MAX_SEND_FAILS) {
+          GST_WARNING_OBJECT (sink, "Removing client as a result of too many send fails");
+          priv->clients = g_list_remove (priv->clients, client);
+          g_signal_emit (self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
+          client->sockaddr);
+          srt_client_free (client);
+          continue;
+       }
+     }
 
     if (!send_buffer_internal (sink, mapinfo, client)){
       priv->clients = g_list_remove (priv->clients, client);

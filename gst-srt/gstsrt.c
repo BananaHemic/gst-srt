@@ -96,6 +96,7 @@ gst_srt_client_connect_full (GstElement * elem, gboolean is_sender,
     goto failed;
   }
 
+
   int on = 1;
   int off = 0;
   /* Make sure TSBPD mode is enable (SRT mode) */
@@ -213,6 +214,14 @@ gst_srt_client_connect (GstElement * elem, int sender,
   return gst_srt_client_connect_full (elem, sender, host, port,
     rendez_vous, bind_address, bind_port, latency, socket_address, poll_id,
     NULL, 0);
+}
+
+void SRTLogHandler (void* opaque, int level, const char* file, int line, const char* area, const char* message)
+{
+    //snprintf (buf + pos, 1024 - pos, "%s:%d(%s)]{%d} %s", file, line, area, level, message);
+    //g_printf ("Got an SRT log!\n");
+    //g_printf("%s:%d(%s)]{%d} %s\n", file, line, area, level, message);
+    GST_DEBUG ("%s:%d(%s)]{%d} %s", file, line, area, level, message);
 }
 
 static gboolean

@@ -61,6 +61,7 @@ struct _GstSRTClientSinkPrivate
   SRTSOCKET sock;
   GSocketAddress *sockaddr;
   gint poll_id;
+  ///NOTE: This is not currently used, since we removed the epoll thing
   gint poll_timeout;
 
   gboolean rendezvous;
