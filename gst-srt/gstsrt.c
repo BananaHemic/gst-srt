@@ -123,6 +123,21 @@ gst_srt_client_connect_full (GstElement * elem, gboolean is_sender,
       srt_setsockopt (sock, 0, SRTO_IPTOS, &tos, sizeof (int));
   }
 
+  // If we're a sender, limit bandwidth spikes
+  if (is_sender) {
+      int64_t max_bw = 0; //relative
+      srt_setsockopt (sock, 0, SRTO_MAXBW, &max_bw, sizeof (int64_t));
+      //int64_t input_bw = 1.5 * 4096 / 8 * 1024;
+      //srt_setsockopt (sock, 0, SRTO_INPUTBW, &input_bw, sizeof (int64_t));
+      //int max_overhead = 50; // 50%
+  }
+
+  /* Use the larger recommended send buffer */
+  if (is_sender) {
+      int send_buff_bytes = SRT_SEND_BUFFER_SIZE;
+      srt_setsockopt(sock, 0, SRTO_UDP_SNDBUF, &send_buff_bytes, sizeof (int));
+  }
+
   GST_INFO_OBJECT (elem, "Using as latency: %i", latency);
 
   int rendezvousInt = (int)rendezvous;

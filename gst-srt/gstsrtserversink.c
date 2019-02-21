@@ -47,8 +47,6 @@
 #include <gio/gio.h>
 
 #define SRT_DEFAULT_POLL_TIMEOUT - 1
-// Recommended size of the send buffer, in bytes
-#define SRT_SEND_BUFFER_SIZE 1024 * 1024
 // How many times a send fails in a row before we disconnect a client
 #define MAX_SEND_FAILS 10
 
