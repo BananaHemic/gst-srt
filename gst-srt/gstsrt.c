@@ -125,8 +125,13 @@ gst_srt_client_connect_full (GstElement * elem, gboolean is_sender,
 
   // If we're a sender, limit bandwidth spikes
   if (is_sender) {
-      int64_t max_bw = 0; //relative
-      srt_setsockopt (sock, 0, SRTO_MAXBW, &max_bw, sizeof (int64_t));
+      //NOTE: We leave the max bandwidth as unlimited
+      // this is because on our broadcaster network,
+      // we don't need to worry too much about
+      // overloading the network. We observe more
+      // video corruption when this is set to 0
+      //int64_t max_bw = 0; //relative
+      //srt_setsockopt (sock, 0, SRTO_MAXBW, &max_bw, sizeof (int64_t));
       //int64_t input_bw = 1.5 * 4096 / 8 * 1024;
       //srt_setsockopt (sock, 0, SRTO_INPUTBW, &input_bw, sizeof (int64_t));
       //int max_overhead = 50; // 50%
