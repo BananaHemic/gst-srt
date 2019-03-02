@@ -269,11 +269,11 @@ gst_srt_server_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     goto out;
   }
 
-  if(priv->last_msg_num != 0
-	&& (ctrl.msgno - priv->last_msg_num) > 1) {
-	  GST_WARNING_OBJECT(self, "Dropped %d. %d->%d", (ctrl.msgno - priv->last_msg_num),
-			  priv->last_msg_num, ctrl.msgno);
+  if(priv->last_msg_num != 0 && (ctrl.msgno - priv->last_msg_num) > 1) {
+    GST_WARNING_OBJECT(self, "Dropped %d. %d->%d", (ctrl.msgno - priv->last_msg_num),
+      priv->last_msg_num, ctrl.msgno);
   }
+  priv->last_msg_num = ctrl.msgno;
 
   GST_BUFFER_PTS (outbuf) =
     gst_clock_get_time (GST_ELEMENT_CLOCK (src)) -
