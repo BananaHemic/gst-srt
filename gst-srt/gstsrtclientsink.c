@@ -179,7 +179,7 @@ gst_srt_client_sink_start (GstBaseSink * sink)
 
 static gboolean
 send_buffer_internal (GstSRTBaseSink * sink,
-  const GstMapInfo * mapinfo, gpointer user_data)
+  const GstMapInfo * mapinfo, gpointer user_data, GstSrtMeta* meta)
 {
   SRTSOCKET sock = GPOINTER_TO_INT (user_data);
 
@@ -201,7 +201,7 @@ send_buffer_internal (GstSRTBaseSink * sink,
 
       //if (delSndDrop != 0 || delSndLoss != 0){
       if (delSndDrop != 0){
-          GST_WARNING_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i recv:%i",
+          GST_WARNING_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i recv:%" G_GINT64_FORMAT,
               delSndDrop, delSndLoss, stats.pktSndDrop, stats.pktSndLoss, stats.pktSent);
           priv->prevSndDrop = stats.pktSndDrop;
           priv->prevSndLoss = stats.pktSndLoss;
@@ -227,7 +227,7 @@ gst_srt_client_sink_send_buffer (GstSRTBaseSink * sink,
     priv->sent_headers = TRUE;
   }
 
-  return send_buffer_internal (sink, mapinfo, GINT_TO_POINTER (priv->sock));
+  return send_buffer_internal (sink, mapinfo, GINT_TO_POINTER (priv->sock), meta);
 }
 
 static gboolean
