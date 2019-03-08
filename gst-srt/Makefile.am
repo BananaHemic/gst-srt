@@ -24,6 +24,7 @@ libgstsrt_la_SOURCES = \
 	gstsrtbasesink.c \
 	gstsrtclientsink.c \
 	gstsrtserversink.c \
+	gstsrtmeta.c \
 	$(NULL)
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
