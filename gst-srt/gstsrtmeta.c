@@ -29,12 +29,13 @@ gst_meta_marking_transform (GstBuffer *dest_buf,
     GstBuffer *src_buf,
     GQuark type,
     gpointer data) {
-    GstMeta* dest_meta = GST_SRT_META_ADD (dest_buf);
+    GstSrtMeta* dest_meta = GST_SRT_META_ADD (dest_buf);
 
     GstSrtMeta* src_meta_marking = (GstSrtMeta*)src_meta;
-    GstSrtMeta* dest_meta_marking = (GstSrtMeta*)dest_meta;
+    //GstSrtMeta* dest_meta_marking = (GstSrtMeta*)dest_meta;
+    //dest_meta_marking->src_time = src_meta_marking->src_time;
 
-    dest_meta_marking->src_time = src_meta_marking->src_time;
+    dest_meta->src_time = src_meta_marking->src_time;
 
     return TRUE;
 }
