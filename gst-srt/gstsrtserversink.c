@@ -390,12 +390,22 @@ failed:
 
 static gboolean inline
 send_buffer_internal (GstSRTBaseSink * sink,
-  const GstMapInfo * mapinfo, gpointer user_data)
+  const GstMapInfo * mapinfo, gpointer user_data, GstSrtMeta* meta)
 {
   SRTClient *client = user_data;
+  //SRT_MSGCTRL ctrl = srt_msgctrl_default;
+  SRT_MSGCTRL ctrl;
+  srt_msgctrl_init (&ctrl);
+  if (meta != NULL) {
+      ctrl.srctime = meta->src_time;
+      //GST_WARNING_OBJECT (sink, "Using as synctime: %" G_GUINT64_FORMAT, ctrl.srctime);
+  }
+  else {
+      //GST_WARNING_OBJECT (sink, "No srt meta!");
+  }
 
   if (srt_sendmsg2 (client->sock, (char *)mapinfo->data, (int)mapinfo->size,
-    0) == SRT_ERROR) {
+    &ctrl) == SRT_ERROR) {
     GST_WARNING_OBJECT (sink, "Removing client Code:%d Reason: %s",
       srt_getlasterror (NULL), srt_getlasterror_str ());
     return FALSE;
@@ -418,7 +428,7 @@ can_client_recv (SRTSOCKET socket) {
 
 static gboolean inline
 gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
-  const GstMapInfo * mapinfo)
+  const GstMapInfo * mapinfo, GstSrtMeta* meta)
 {
   GstSRTServerSink *self = GST_SRT_SERVER_SINK (sink);
   GstSRTServerSinkPrivate *priv = GST_SRT_SERVER_SINK_GET_PRIVATE (self);
@@ -441,7 +451,7 @@ gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
        }
      }
 
-    if (!send_buffer_internal (sink, mapinfo, client)){
+    if (!send_buffer_internal (sink, mapinfo, client, meta)){
       priv->clients = g_list_remove (priv->clients, client);
       g_signal_emit (self, signals[SIG_CLIENT_REMOVED], 0, client->sock,
         client->sockaddr);
@@ -457,7 +467,7 @@ gst_srt_server_sink_send_buffer (GstSRTBaseSink * sink,
       goto err;
     GST_INFO_OBJECT(self, "Sent client headers");
 
-    if (!send_buffer_internal (sink, mapinfo, client))
+    if (!send_buffer_internal (sink, mapinfo, client, meta))
       goto err;
     /* GList recommends prepending to lists for performance */
     priv->clients = g_list_prepend(priv->clients, client);

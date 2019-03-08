@@ -44,6 +44,7 @@
 #include "gstsrtserversrc.h"
 #include "gstsrt.h"
 #include <gio/gio.h>
+#include "gstsrtmeta.h"
 
 #define SRT_DEFAULT_WAIT_TIMEOUT -1
 #define SRT_DEFAULT_POLL_TIMEOUT -1
@@ -289,6 +290,12 @@ gst_srt_server_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     GST_TIME_ARGS (GST_BUFFER_TIMESTAMP (outbuf)),
     GST_TIME_ARGS (GST_BUFFER_DURATION (outbuf)),
     GST_BUFFER_OFFSET (outbuf), GST_BUFFER_OFFSET_END (outbuf));
+
+  // Add the src time that we received from srt as a GstMeta
+  // this is so that downstream SRT elements can read that 
+  // gstmeta and use it to keep the same time
+  GstSrtMeta* meta = GST_SRT_META_ADD (outbuf);
+  meta->src_time = ctrl.srctime;
 
 out:
   return ret;

@@ -136,6 +136,7 @@
     <ClCompile Include="gstsrtbasesrc.c" />
     <ClCompile Include="gstsrtclientsink.c" />
     <ClCompile Include="gstsrtclientsrc.c" />
+    <ClCompile Include="gstsrtmeta.c" />
     <ClCompile Include="gstsrtserversink.c" />
     <ClCompile Include="gstsrtserversrc.c" />
   </ItemGroup>
@@ -145,6 +146,7 @@
     <ClInclude Include="gstsrtbasesrc.h" />
     <ClInclude Include="gstsrtclientsink.h" />
     <ClInclude Include="gstsrtclientsrc.h" />
+    <ClInclude Include="gstsrtmeta.h" />
     <ClInclude Include="gstsrtserversink.h" />
     <ClInclude Include="gstsrtserversrc.h" />
   </ItemGroup>

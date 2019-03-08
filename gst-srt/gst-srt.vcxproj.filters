@@ -36,6 +36,9 @@
     <ClCompile Include="gstsrtserversrc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gstsrtmeta.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gstsrtbasesink.h">
@@ -57,6 +60,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gstsrt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gstsrtmeta.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

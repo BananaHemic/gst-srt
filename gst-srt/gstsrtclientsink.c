@@ -214,7 +214,7 @@ send_buffer_internal (GstSRTBaseSink * sink,
 
 static gboolean
 gst_srt_client_sink_send_buffer (GstSRTBaseSink * sink,
-  const GstMapInfo * mapinfo)
+  const GstMapInfo * mapinfo, GstSrtMeta* meta)
 {
   GstSRTClientSink *self = GST_SRT_CLIENT_SINK (sink);
   GstSRTClientSinkPrivate *priv = GST_SRT_CLIENT_SINK_GET_PRIVATE (self);

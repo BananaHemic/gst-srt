@@ -226,10 +226,10 @@ gst_srt_base_sink_render (GstBaseSink * sink, GstBuffer * buffer)
     GST_ELEMENT_ERROR (self, RESOURCE, READ,
       ("Could not map the input stream"), (NULL));
     return GST_FLOW_ERROR;
-
   }
+  GstSrtMeta* meta = GST_SRT_META_GET (buffer);
 
-  if (!bclass->send_buffer (self, &info))
+  if (!bclass->send_buffer (self, &info, meta))
     ret = GST_FLOW_ERROR;
 
   gst_buffer_unmap (buffer, &info);
@@ -386,7 +386,10 @@ gst_srt_base_sink_send_headers (GstSRTBaseSink * self,
       return FALSE;
     }
 
-    ret = send_cb (self, &info, user_data);
+    // We don't use the meta for the header
+    // we might want to re-evaluate that decision
+    // however
+    ret = send_cb (self, &info, user_data, NULL);
 
     gst_buffer_unmap (buffer, &info);
 

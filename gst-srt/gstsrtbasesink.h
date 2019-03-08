@@ -26,6 +26,7 @@
 #include <gst/gst.h>
 #include <gst/base/gstbasesink.h>
 #include <gio/gio.h>
+#include "gstsrtmeta.h"
 
 #include <srt.h>
 
@@ -60,7 +61,7 @@ struct _GstSRTBaseSinkClass {
   GstBaseSinkClass parent_class;
 
   /* ask the subclass to send a buffer */
-  gboolean (*send_buffer)       (GstSRTBaseSink *self, const GstMapInfo *mapinfo);
+  gboolean (*send_buffer)       (GstSRTBaseSink *self, const GstMapInfo *mapinfo, GstSrtMeta* meta);
 
   gpointer _gst_reserved[GST_PADDING_LARGE];
 
@@ -70,7 +71,7 @@ GST_EXPORT
 GType gst_srt_base_sink_get_type (void);
 
 typedef gboolean (*GstSRTBaseSinkSendCallback) (GstSRTBaseSink *sink,
-  const GstMapInfo *mapinfo, gpointer user_data);
+  const GstMapInfo *mapinfo, gpointer user_data, GstSrtMeta* meta);
 
 gboolean gst_srt_base_sink_send_headers (GstSRTBaseSink *sink,
   GstSRTBaseSinkSendCallback send_cb, gpointer user_data);

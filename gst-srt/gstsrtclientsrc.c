@@ -48,6 +48,7 @@
 #include <gio/gio.h>
 
 #include "gstsrt.h"
+#include "gstsrtmeta.h"
 
 static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src",
   GST_PAD_SRC,
@@ -243,6 +244,7 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
   }
   priv->last_msg_num = ctrl.msgno;
 
+
   GST_BUFFER_PTS (outbuf) =
     gst_clock_get_time (GST_ELEMENT_CLOCK (src)) -
     GST_ELEMENT_CAST (src)->base_time;
@@ -257,6 +259,12 @@ gst_srt_client_src_fill (GstPushSrc * src, GstBuffer * outbuf)
     GST_TIME_ARGS (GST_BUFFER_TIMESTAMP (outbuf)),
     GST_TIME_ARGS (GST_BUFFER_DURATION (outbuf)),
     GST_BUFFER_OFFSET (outbuf), GST_BUFFER_OFFSET_END (outbuf));
+
+  // Add the src time that we received from srt as a GstMeta
+  // this is so that downstream SRT elements can read that 
+  // gstmeta and use it to keep the same time
+  GstSrtMeta* meta = GST_SRT_META_ADD (outbuf);
+  meta->src_time = ctrl.srctime;
 
 out:
   return ret;
