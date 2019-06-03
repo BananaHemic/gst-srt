@@ -201,7 +201,7 @@ send_buffer_internal (GstSRTBaseSink * sink,
 
       //if (delSndDrop != 0 || delSndLoss != 0){
       if (delSndDrop != 0){
-          GST_WARNING_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i recv:%i",
+          GST_WARNING_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i recv:%ld",
               delSndDrop, delSndLoss, stats.pktSndDrop, stats.pktSndLoss, stats.pktSent);
           priv->prevSndDrop = stats.pktSndDrop;
           priv->prevSndLoss = stats.pktSndLoss;
