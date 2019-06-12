@@ -130,11 +130,13 @@ gst_srt_client_connect_full (GstElement * elem, gboolean is_sender,
       // we don't need to worry too much about
       // overloading the network. We observe more
       // video corruption when this is set to 0
-      //int64_t max_bw = 0; //relative
-      //srt_setsockopt (sock, 0, SRTO_MAXBW, &max_bw, sizeof (int64_t));
+      int64_t max_bw = 0; //relative
+      srt_setsockopt (sock, 0, SRTO_MAXBW, &max_bw, sizeof (int64_t));
       //int64_t input_bw = 1.5 * 4096 / 8 * 1024;
       //srt_setsockopt (sock, 0, SRTO_INPUTBW, &input_bw, sizeof (int64_t));
       //int max_overhead = 50; // 50%
+      int max_overhead = 100; // 100%
+      srt_setsockopt (sock, 0, SRTO_OHEADBW, &max_overhead, sizeof (int64_t));
   }
 
   /* Use the larger recommended send buffer */

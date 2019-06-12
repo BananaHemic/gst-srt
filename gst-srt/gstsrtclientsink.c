@@ -70,6 +70,7 @@ struct _GstSRTClientSinkPrivate
 
   gint prevSndDrop;
   gint prevSndLoss;
+  time_t lastPrintTime;
 
   gboolean sent_headers;
 };
@@ -201,12 +202,25 @@ send_buffer_internal (GstSRTBaseSink * sink,
 
       //if (delSndDrop != 0 || delSndLoss != 0){
       if (delSndDrop != 0){
-          GST_WARNING_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i recv:%i",
+          GST_WARNING_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i sent:%i",
               delSndDrop, delSndLoss, stats.pktSndDrop, stats.pktSndLoss, stats.pktSent);
           priv->prevSndDrop = stats.pktSndDrop;
           priv->prevSndLoss = stats.pktSndLoss;
       }
 
+
+      time_t currentTime;
+      time (&currentTime);
+      if (currentTime - priv->lastPrintTime > 2) {
+          GST_LOG_OBJECT (sink, "Dropped %i pkts loss %i. Total drop: %i loss:%i sent:%i",
+              delSndDrop, delSndLoss, stats.pktSndDrop, stats.pktSndLoss, stats.pktSent);
+          priv->lastPrintTime = currentTime;
+          priv->prevSndDrop = stats.pktSndDrop;
+          priv->prevSndLoss = stats.pktSndLoss;
+      }
+  }
+  else {
+      GST_WARNING_OBJECT (sink, "Failed getting SRT stats, ret: %i", ret);
   }
 
   return TRUE;
